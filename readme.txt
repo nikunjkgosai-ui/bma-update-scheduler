@@ -3,7 +3,7 @@ Tags: updates, scheduled updates, backup, maintenance
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -32,7 +32,7 @@ WordPress and UpdraftPlus implementations are not bundled. BMA calls their insta
 
 = External communication and privacy =
 
-BMA uses WordPress's native update checks and upgraders. These contact WordPress.org and may use update providers registered by installed plugins/themes. Update requests may transmit the site URL, WordPress/PHP versions, installed component versions and provider credentials already configured by the administrator. Download requests retrieve the selected update packages. These communications are necessary for update functionality; BMA does not add analytics, tracking, advertising, a licensing server or an author-operated service.
+BMA uses WordPress's native update checks and upgraders. These contact WordPress.org and may use update providers registered by installed plugins/themes. The private edition also contacts api.github.com to check this plugin's private GitHub releases when BMA_US_GITHUB_TOKEN is configured. BMA's GitHub request includes the repository-specific credential and installed BMA version. Package downloads use GitHub's authenticated release-asset endpoint; authorization is restricted to the exact BMA repository API path and is not forwarded to redirected download hosts. Other native or provider update requests may transmit the site URL, WordPress/PHP versions, installed component versions and provider credentials already configured by the administrator. These communications are necessary for update functionality; BMA does not add analytics, tracking, advertising, a licensing server or an author-operated service.
 
 This is a privately distributed edition, not a WordPress.org Plugin Directory submission. It retains vendor-hosted premium plugin and theme updates through WordPress's native updater. Valid vendor licenses or credentials may be required by those installed products; BMA itself adds no paid feature gates. No WordPress.org listing, review approval or SVN publication is claimed.
 
@@ -46,13 +46,13 @@ Settings, scheduler owner ID, notification email, update history, health records
 
 == Private Distribution ==
 
-Distribute the ZIP directly to the sites you administer. No WordPress.org SVN repository is required for this edition. GPLv2-or-later licensing still applies; private distribution does not remove recipients' GPL rights. The Update URI identifies this private plugin and is not an automatic update feed. Install future BMA releases using WordPress's plugin upload/replace interface while no BMA update is running.
+Distribute the ZIP directly to the sites you administer. No WordPress.org SVN repository is required for this edition. GPLv2-or-later licensing still applies; private distribution does not remove recipients' GPL rights. Version 1.0.4 adds an authenticated GitHub release feed. Configure a repository-scoped, read-only token in wp-config.php to receive future releases through WordPress's native plugin updater.
 
 == Installation ==
 
 1. Wait for any BMA update operation to finish.
 2. Disable only the old BMA Update Scheduler snippet. Keep Code Snippets active if other snippets need it.
-3. Upload bma-update-scheduler-1.0.2.zip through Plugins > Add New > Upload Plugin and activate.
+3. Upload bma-update-scheduler-1.0.4.zip through Plugins > Add New > Upload Plugin and activate.
 4. Open Tools > BMA Update Scheduler. Existing BMA settings and history are reused.
 5. Review the backup gate, schedule and email, then Save Schedule as an authorized administrator.
 
@@ -76,13 +76,24 @@ Deactivation clears BMA scheduled events and obsolete pending backup jobs. Setti
 
 = Can BMA update itself? =
 
-BMA excludes itself and Code Snippets from its own update batches. Use the normal WordPress plugin installation/update interface for BMA while no operation is running. The private edition has no remote self-update feed.
+BMA excludes itself and Code Snippets from BMA's scheduled update batches. Starting with version 1.0.4, WordPress's normal Plugins and Updates screens can update BMA from private GitHub releases. Create a fine-grained GitHub token limited to the bma-update-scheduler repository with read-only Contents access, then add this before the stop-editing line in wp-config.php:
+
+define( 'BMA_US_GITHUB_TOKEN', 'github_pat_REPLACE_WITH_YOUR_TOKEN' );
+
+Never put the token in the plugin source, ZIP, Git repository, support messages or screenshots. Use a separate token per managed site where practical. BMA never enables unattended auto-updates for itself; an administrator controls installation through WordPress.
 
 = What infrastructure is required? =
 
 A consistent MySQL/MariaDB connection supporting advisory locks, WordPress filesystem access and active UpdraftPlus with a qualifying backup. WP-Cron needs traffic or a server cron trigger. Email delivery depends on the site's mail configuration.
 
 == Changelog ==
+
+= 1.0.4 =
+* Added authenticated private GitHub release checks through WordPress's Update URI API.
+* Added repository- and path-scoped release asset validation.
+* Kept GitHub credentials in wp-config.php rather than plugin files or database options.
+* Prevented the authorization header from being forwarded to redirected package hosts.
+* Kept automatic self-updates disabled; WordPress administrators retain installation control.
 
 = 1.0.3 =
 * Removed the private Update URI header for compatibility with WordPress Plugin Check.
@@ -105,6 +116,9 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 * Initial standalone package of the BMA Update Scheduler snippet.
 
 == Upgrade Notice ==
+
+= 1.0.4 =
+Adds opt-in authenticated updates from the private GitHub release repository. Configure BMA_US_GITHUB_TOKEN in wp-config.php after installing this version.
 
 = 1.0.1 =
 Licensing, documentation and source-formatting update. Existing settings/history are retained.

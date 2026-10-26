@@ -2,10 +2,11 @@
 /**
  * Plugin Name: BMA Update Scheduler
  * Description: Manual and scheduled WordPress updates with an existing-backup safety gate, history, health checks and email alerts.
- * Version: 1.0.3
+ * Version: 1.0.4
  * Requires at least: 6.3
  * Requires PHP: 7.4
  * Author: Branding Marketing Agency
+ * Update URI: https://github.com/nikunjkgosai-ui/bma-update-scheduler
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
  * Text Domain: bma-update-scheduler
@@ -30,6 +31,9 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 define( 'BMA_US_PLUGIN_FILE', __FILE__ );
 define( 'BMA_US_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+
+require_once __DIR__ . '/includes/private-updater.php';
+BMA_US_Private_Updater::boot();
 
 final class BMA_US_Plugin {
  private static $loaded = false;

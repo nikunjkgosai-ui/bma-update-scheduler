@@ -21,6 +21,16 @@ This is the private edition. It supports update packages supplied by installed p
 
 If migrating from the Code Snippets version, disable the old BMA scheduler snippet before activating this plugin. Existing settings and update history use the same WordPress option names and are retained.
 
+## Private updates
+
+Version 1.0.4 and later can discover production releases from the private GitHub repository through WordPress's native plugin updater. Create a fine-grained GitHub token limited to `nikunjkgosai-ui/bma-update-scheduler` with read-only **Contents** permission, then add it to `wp-config.php` before the stop-editing line:
+
+```php
+define( 'BMA_US_GITHUB_TOKEN', 'github_pat_REPLACE_WITH_YOUR_TOKEN' );
+```
+
+Do not place the token in this repository or any plugin ZIP. BMA validates the exact repository and expected release asset name, and does not forward the authorization header to GitHub's redirected download host. Automatic self-updates are not enabled; install offered releases from WordPress's normal Plugins or Updates screen.
+
 ## Backup policy
 
 BMA does not create backups. Before manual or scheduled updates, it requires active UpdraftPlus and checks the latest existing backup for successful completion, acceptable age, and expected components. The default maximum age is 30 days.
