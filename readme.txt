@@ -3,7 +3,7 @@ Tags: updates, scheduled updates, backup, maintenance
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.6
+Stable tag: 1.0.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -88,6 +88,11 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 
 == Changelog ==
 
+= 1.0.7 =
+* Reports compatibility through WordPress 7.1.3 in the private update response.
+* Clears the private GitHub release cache when WordPress performs a fresh plugin-update check.
+* Removed the background fill behind the Protected text in the Backup Safety statistic.
+
 = 1.0.6 =
 * Rebuilt the installable archive with ZIP-standard forward-slash paths for reliable extraction on WordPress servers.
 * No scheduler, backup gate, updater or health-check behavior was changed.
@@ -124,6 +129,9 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 * Initial standalone package of the BMA Update Scheduler snippet.
 
 == Upgrade Notice ==
+
+= 1.0.7 =
+Refreshes private-release checks, reports WordPress 7.1.3 compatibility and refines the Backup Safety display.
 
 = 1.0.6 =
 Corrects the installable ZIP path format so WordPress preserves the expected plugin directory and main-file path.
