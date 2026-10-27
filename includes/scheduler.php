@@ -3535,6 +3535,10 @@ Timezone:
     color:#008a20;
     
 }
+.bma-backup-stat .bma-backup-good {
+    background:transparent;
+    
+}
 .bma-backup-warning {
     background:#fff8e5;
     color:#996800;

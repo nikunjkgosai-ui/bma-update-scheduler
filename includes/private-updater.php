@@ -10,12 +10,17 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 final class BMA_US_Private_Updater {
  const UPDATE_URI = 'https://github.com/nikunjkgosai-ui/bma-update-scheduler';
  const API_ROOT = 'https://api.github.com/repos/nikunjkgosai-ui/bma-update-scheduler';
- const CACHE_KEY = 'bma_us_private_release_1';
+ const CACHE_KEY = 'bma_us_private_release_2';
  const CACHE_TTL = 21600;
 
  public static function boot() {
   add_filter( 'update_plugins_github.com', array( __CLASS__, 'check_update' ), 10, 4 );
   add_filter( 'upgrader_pre_download', array( __CLASS__, 'download_private_package' ), 10, 4 );
+  add_action( 'delete_site_transient_update_plugins', array( __CLASS__, 'clear_release_cache' ), 10, 0 );
+ }
+
+ public static function clear_release_cache() {
+  delete_site_transient( self::CACHE_KEY );
  }
 
  public static function check_update( $update, $plugin_data, $plugin_file, $locales ) {
@@ -95,7 +100,7 @@ final class BMA_US_Private_Updater {
    'package'      => $package,
    'requires'     => '6.3',
    'requires_php' => '7.4',
-   'tested'       => '7.1',
+   'tested'       => '7.1.3',
   );
   set_site_transient( self::CACHE_KEY, $release, self::CACHE_TTL );
   return $release;
