@@ -3,7 +3,7 @@ Tags: updates, scheduled updates, backup, maintenance
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.10
+Stable tag: 1.0.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -32,9 +32,9 @@ WordPress and UpdraftPlus implementations are not bundled. BMA calls their insta
 
 = External communication and privacy =
 
-BMA uses WordPress's native update checks and upgraders. These contact WordPress.org and may use update providers registered by installed plugins/themes. The private edition also contacts api.github.com to check this plugin's private GitHub releases when BMA_US_GITHUB_TOKEN is configured. BMA's GitHub request includes the repository-specific credential and installed BMA version. Package downloads use GitHub's authenticated release-asset endpoint; authorization is restricted to the exact BMA repository API path and is not forwarded to redirected download hosts. Other native or provider update requests may transmit the site URL, WordPress/PHP versions, installed component versions and provider credentials already configured by the administrator. These communications are necessary for update functionality; BMA does not add analytics, tracking, advertising, a licensing server or an author-operated service.
+BMA uses WordPress's native update checks and upgraders. These contact WordPress.org and may use update providers registered by installed plugins/themes. BMA also contacts api.github.com to check this plugin's public GitHub releases. The request includes the installed BMA version in its user-agent and does not include a repository credential. Release packages are accepted only from the exact BMA GitHub repository and expected versioned ZIP filename. Other native or provider update requests may transmit the site URL, WordPress/PHP versions, installed component versions and provider credentials already configured by the administrator. These communications are necessary for update functionality; BMA does not add analytics, tracking, advertising, a licensing server or an author-operated service.
 
-This is a privately distributed edition, not a WordPress.org Plugin Directory submission. It retains vendor-hosted premium plugin and theme updates through WordPress's native updater. Valid vendor licenses or credentials may be required by those installed products; BMA itself adds no paid feature gates. No WordPress.org listing, review approval or SVN publication is claimed.
+This is an independently distributed GitHub edition, not a WordPress.org Plugin Directory submission. It retains vendor-hosted premium plugin and theme updates through WordPress's native updater. Valid vendor licenses or credentials may be required by those installed products; BMA itself adds no paid feature gates. No WordPress.org listing, review approval or SVN publication is claimed.
 
 WordPress.org privacy policy: https://wordpress.org/about/privacy/
 WordPress.org terms: https://wordpress.org/about/terms-of-service/
@@ -44,15 +44,15 @@ Email alerts are disabled until an administrator saves a notification email addr
 
 Settings, scheduler owner ID, notification email, update history, health records and mail acceptance status are stored in the site's WordPress database. Notification dismissals use the administrator's browser localStorage. The plugin adds no links, credits, tracking or content to the public-facing site.
 
-== Private Distribution ==
+== Distribution ==
 
-Distribute the ZIP directly to the sites you administer. No WordPress.org SVN repository is required for this edition. GPLv2-or-later licensing still applies; private distribution does not remove recipients' GPL rights. Version 1.0.4 adds an authenticated GitHub release feed. Configure a repository-scoped, read-only token in wp-config.php to receive future releases through WordPress's native plugin updater.
+Download production ZIP files from the public GitHub releases page. No WordPress.org SVN repository or GitHub token is required for this edition. GPLv2-or-later licensing applies to all recipients. WordPress administrators receive future production releases through the native plugin updater.
 
 == Installation ==
 
 1. Wait for any BMA update operation to finish.
 2. Disable only the old BMA Update Scheduler snippet. Keep Code Snippets active if other snippets need it.
-3. Upload bma-update-scheduler-1.0.4.zip through Plugins > Add New > Upload Plugin and activate.
+3. Upload the current bma-update-scheduler-version.zip through Plugins > Add New > Upload Plugin and activate.
 4. Open Tools > BMA Update Scheduler. Existing BMA settings and history are reused.
 5. Review the backup gate, schedule and email, then Save Schedule as an authorized administrator.
 
@@ -76,17 +76,18 @@ Deactivation clears BMA scheduled events and obsolete pending backup jobs. Setti
 
 = Can BMA update itself? =
 
-BMA excludes itself and Code Snippets from BMA's scheduled update batches. Starting with version 1.0.4, WordPress's normal Plugins and Updates screens can update BMA from private GitHub releases. Create a fine-grained GitHub token limited to the bma-update-scheduler repository with read-only Contents access, then add this before the stop-editing line in wp-config.php:
-
-define( 'BMA_US_GITHUB_TOKEN', 'github_pat_REPLACE_WITH_YOUR_TOKEN' );
-
-Never put the token in the plugin source, ZIP, Git repository, support messages or screenshots. Use a separate token per managed site where practical. BMA never enables unattended auto-updates for itself; an administrator controls installation through WordPress.
+BMA excludes itself and Code Snippets from BMA's scheduled update batches. WordPress's normal Plugins and Updates screens can update BMA from public GitHub releases without a token or wp-config.php change. BMA never enables unattended auto-updates for itself; an administrator controls installation through WordPress.
 
 = What infrastructure is required? =
 
 A consistent MySQL/MariaDB connection supporting advisory locks, WordPress filesystem access and active UpdraftPlus with a qualifying backup. WP-Cron needs traffic or a server cron trigger. Email delivery depends on the site's mail configuration.
 
 == Changelog ==
+
+= 1.0.11 =
+* Removed the GitHub token and wp-config.php requirement for BMA updates.
+* Restricted public update packages to the exact BMA repository, release tag and versioned ZIP filename.
+* Updated public-distribution, privacy and security documentation.
 
 = 1.0.10 =
 * Added a Check for updates action beside Deactivate on the Plugins screen.
@@ -145,6 +146,9 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 * Initial standalone package of the BMA Update Scheduler snippet.
 
 == Upgrade Notice ==
+
+= 1.0.11 =
+Moves BMA updates to the public GitHub release feed; no token or wp-config.php change is required.
 
 = 1.0.10 =
 Adds an administrator-controlled Check for updates action on the Plugins screen.

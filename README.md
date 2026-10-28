@@ -2,7 +2,7 @@
 
 BMA Update Scheduler provides manual and scheduled WordPress plugin, theme, and core updates with an existing UpdraftPlus backup safety gate, update history, post-update health checks, locking, and optional email alerts.
 
-This is the private edition. It supports update packages supplied by installed plugins and themes, including vendor-hosted premium updates. It is not intended for submission to the WordPress.org Plugin Directory.
+The project is distributed publicly under GPLv2 or later. It supports update packages supplied by installed plugins and themes, including vendor-hosted premium updates. It is independently distributed through GitHub and is not a WordPress.org Plugin Directory release.
 
 ## Requirements
 
@@ -21,15 +21,13 @@ This is the private edition. It supports update packages supplied by installed p
 
 If migrating from the Code Snippets version, disable the old BMA scheduler snippet before activating this plugin. Existing settings and update history use the same WordPress option names and are retained.
 
-## Private updates
+## Updates
 
-Version 1.0.4 and later can discover production releases from the private GitHub repository through WordPress's native plugin updater. Create a fine-grained GitHub token limited to `nikunjkgosai-ui/bma-update-scheduler` with read-only **Contents** permission, then add it to `wp-config.php` before the stop-editing line:
+BMA discovers production releases from the public GitHub repository through WordPress's native plugin updater. No GitHub token or `wp-config.php` change is required. Release metadata and packages are accepted only from the exact BMA repository and expected versioned ZIP filename. Automatic self-updates are not enabled; administrators install offered releases from WordPress's normal Plugins or Updates screen.
 
-```php
-define( 'BMA_US_GITHUB_TOKEN', 'github_pat_REPLACE_WITH_YOUR_TOKEN' );
-```
+## Security
 
-Do not place the token in this repository or any plugin ZIP. BMA validates the exact repository and expected release asset name, and does not forward the authorization header to GitHub's redirected download host. Automatic self-updates are not enabled; install offered releases from WordPress's normal Plugins or Updates screen.
+Please report suspected vulnerabilities privately as described in [SECURITY.md](SECURITY.md). Do not publish exploitable details in a public issue before a fix is available.
 
 ## Backup policy
 
