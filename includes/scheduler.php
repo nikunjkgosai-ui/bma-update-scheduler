@@ -61,7 +61,7 @@ function bma_us_refresh_updates() {
 
 
 function bma_us_get_settings() {
-    $defaults = array( 'enabled' => 0, 'plugins' => 1, 'themes' => 1, 'core' => 0, 'frequency' => 'weekly', 'day' => 'sunday', 'time' => '02:00', 'selected_plugins' => array(), 'selected_themes' => array(), 'notification_email' => '', );
+    $defaults = array( 'enabled' => 0, 'plugins' => 1, 'themes' => 1, 'core' => 0, 'frequency' => 'weekly', 'weekdays' => array( 'monday' ), 'month_day' => '1', 'day' => 'sunday', 'time' => '02:00', 'selected_plugins' => array(), 'selected_themes' => array(), 'notification_email' => '', );
     $saved = get_option( BMA_US_OPTION, array() );
     return wp_parse_args( $saved, $defaults );
     
@@ -153,44 +153,56 @@ function bma_us_release_lock() {
 }
 
 
-function bma_us_calculate_next_run( $settings ) {
-    $timezone = wp_timezone();
-    $now = new DateTimeImmutable( 'now', $timezone );
-    $time_parts = explode( ':', $settings['time'] );
-    $hour = isset( $time_parts[0] ) ? absint( $time_parts[0] ) : 2;
-    $minute = isset( $time_parts[1] ) ? absint( $time_parts[1] ) : 0;
-    $hour = min( 23, $hour );
-    $minute = min( 59, $minute );
-    if ( 'daily' === $settings['frequency'] ) {
-        $next = $now->setTime( $hour, $minute, 0 );
-        if ( $next <= $now ) {
-            $next = $next->modify( '+1 day' );
-            
+/** Calendar-based scheduling uses the WordPress timezone, including DST changes. */
+function bma_us_calculate_next_run( $settings, $after = null ) {
+    $now = ( new DateTimeImmutable( '@' . ( null === $after ? time() : (int) $after ) ) )->setTimezone( wp_timezone() );
+    $parts = explode( ':', $settings['time'] ?? '02:00' );
+    $hour = min( 23, absint( $parts[0] ?? 2 ) );
+    $minute = min( 59, absint( $parts[1] ?? 0 ) );
+    $frequency = $settings['frequency'] ?? 'weekly';
+    $days = array( 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' );
+    $selected = array_values( array_intersect( $days, (array) ( $settings['weekdays'] ?? array() ) ) );
+    $weekly = in_array( $settings['day'] ?? '', $days, true ) ? $settings['day'] : 'sunday';
+    $date = $now->setTime( 12, 0 );
+    for ( $i = 0; $i < 370; $i++ ) {
+        $candidate = $date->setTime( $hour, $minute, 0 );
+        $weekday = strtolower( $date->format( 'l' ) );
+        $matches = 'daily' === $frequency;
+        if ( 'weekly' === $frequency ) { $matches = $weekday === $weekly; }
+        if ( 'weekdays' === $frequency ) { $matches = in_array( $weekday, $selected, true ); }
+        if ( 'monthly' === $frequency ) {
+            $month_day = $settings['month_day'] ?? '1';
+            $last = (int) $date->format( 't' );
+            $target = 'last' === $month_day ? $last : min( $last, max( 1, absint( $month_day ) ) );
+            $matches = (int) $date->format( 'j' ) === $target;
         }
-        return $next->getTimestamp();
-        
+        if ( $matches && $candidate > $now ) { return $candidate->getTimestamp(); }
+        $date = $date->modify( '+1 day' );
     }
-    $allowed_days = array( 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', );
-    $day = strtolower( $settings['day'] );
-    if ( ! in_array( $day, $allowed_days, true ) ) {
-        $day = 'sunday';
-        
+    return false;
+}
+
+add_action( 'wp_ajax_bma_us_schedule_preview', 'bma_us_schedule_preview' );
+function bma_us_schedule_preview() {
+    if ( ! current_user_can( 'update_core' ) ) { wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 ); }
+    check_ajax_referer( 'bma_us_schedule_preview', 'nonce' );
+    $input = isset( $_POST['schedule'] ) && is_array( $_POST['schedule'] ) ? map_deep( wp_unslash( $_POST['schedule'] ), 'sanitize_text_field' ) : array();
+    $settings = bma_us_get_settings();
+    foreach ( array( 'frequency', 'day', 'time', 'month_day' ) as $field ) {
+        if ( isset( $input[ $field ] ) && is_string( $input[ $field ] ) ) { $settings[ $field ] = $input[ $field ]; }
     }
-    $today = strtolower( $now->format( 'l' ) );
-    if ( $today === $day ) {
-        $next = $now->setTime( $hour, $minute, 0 );
-        if ( $next <= $now ) {
-            $next = $next->modify( '+1 week' );
-            
-        }
-        
+    $settings['weekdays'] = isset( $input['weekdays'] ) && is_array( $input['weekdays'] ) ? array_filter( $input['weekdays'], 'is_string' ) : array();
+    if ( ! in_array( $settings['frequency'], array( 'daily', 'weekly', 'weekdays', 'monthly' ), true ) || ! preg_match( '/^(?:[01]\d|2[0-3]):[0-5]\d$/', $settings['time'] ) ) {
+        wp_send_json_error( array( 'message' => 'Choose a valid frequency and time.' ) );
     }
-    else {
-        $next = $now ->modify( 'next ' . $day ) ->setTime( $hour, $minute, 0 );
-        
+    $runs = array();
+    $after = time();
+    for ( $i = 0; $i < 3; $i++ ) {
+        $after = bma_us_calculate_next_run( $settings, $after );
+        if ( ! $after ) { wp_send_json_error( array( 'message' => 'Select at least one weekday.' ) ); }
+        $runs[] = wp_date( 'D, M j, Y \a\t g:i A (T)', $after, wp_timezone() );
     }
-    return $next->getTimestamp();
-    
+    wp_send_json_success( array( 'runs' => $runs ) );
 }
 
 
@@ -260,7 +272,7 @@ function bma_us_save_schedule() {
     }
     $notification_email = sanitize_email( $email_input );
     $frequency = isset( $_POST['frequency'] ) && is_string( $_POST['frequency'] ) ? sanitize_key( wp_unslash( $_POST['frequency'] ) ) : 'weekly';
-    if ( ! in_array( $frequency, array( 'daily', 'weekly' ), true ) ) {
+    if ( ! in_array( $frequency, array( 'daily', 'weekly', 'weekdays', 'monthly' ), true ) ) {
         $frequency = 'weekly';
         
     }
@@ -274,6 +286,15 @@ function bma_us_save_schedule() {
     if ( ! preg_match( '/^(?:[01]\d|2[0-3]):[0-5]\d$/', $time ) ) {
         $time = '02:00';
         
+    }
+    $weekdays = isset( $_POST['weekdays'] ) && is_array( $_POST['weekdays'] ) ? map_deep( wp_unslash( $_POST['weekdays'] ), 'sanitize_text_field' ) : array();
+    $weekdays = array_values( array_intersect( $allowed_days, array_filter( $weekdays, 'is_string' ) ) );
+    if ( 'weekdays' === $frequency && ! $weekdays ) {
+        wp_die( 'Select at least one weekday.' );
+    }
+    $month_day = isset( $_POST['month_day'] ) && is_string( $_POST['month_day'] ) ? sanitize_text_field( wp_unslash( $_POST['month_day'] ) ) : '1';
+    if ( 'last' !== $month_day ) {
+        $month_day = (string) min( 31, max( 1, absint( $month_day ) ) );
     }
     $selected_plugins = array();
     if ( isset( $_POST['selected_plugins'] ) && is_array( $_POST['selected_plugins'] ) ) {
@@ -307,7 +328,7 @@ function bma_us_save_schedule() {
         }
         
     }
-    $settings = array( 'scheduled_by' => get_current_user_id(), 'notification_email' => $notification_email, 'enabled' => isset( $_POST['enabled'] ) ? 1 : 0, 'plugins' => isset( $_POST['plugins'] ) ? 1 : 0, 'themes' => isset( $_POST['themes'] ) ? 1 : 0, 'core' => isset( $_POST['core'] ) ? 1 : 0, 'frequency' => $frequency, 'day' => $day, 'time' => $time, 'selected_plugins' => array_values( array_unique( $selected_plugins ) ), 'selected_themes' => array_values( array_unique( $selected_themes ) ), );
+    $settings = array( 'scheduled_by' => get_current_user_id(), 'notification_email' => $notification_email, 'enabled' => isset( $_POST['enabled'] ) ? 1 : 0, 'plugins' => isset( $_POST['plugins'] ) ? 1 : 0, 'themes' => isset( $_POST['themes'] ) ? 1 : 0, 'core' => isset( $_POST['core'] ) ? 1 : 0, 'frequency' => $frequency, 'weekdays' => $weekdays, 'month_day' => $month_day, 'day' => $day, 'time' => $time, 'selected_plugins' => array_values( array_unique( $selected_plugins ) ), 'selected_themes' => array_values( array_unique( $selected_themes ) ), );
     $saved_schedule = bma_us_reschedule_event( $settings );
     if ( $saved_schedule ) {
         update_option( BMA_US_OPTION, $settings, false );
@@ -2712,6 +2733,8 @@ by
 								>
 									Weekly
 								</option>
+<option value="weekdays" <?php selected( $settings['frequency'], 'weekdays' ); ?>>Selected weekdays</option>
+<option value="monthly" <?php selected( $settings['frequency'], 'monthly' ); ?>>Monthly</option>
 </select>
 </div>
 <div
@@ -2743,6 +2766,22 @@ by
 
 							</select>
 </div>
+<fieldset class="bma-field" id="bma-weekdays-field">
+<legend>Weekdays</legend>
+<?php foreach ( $days as $value => $label ) : ?>
+<label><input type="checkbox" name="weekdays[]" value="<?php echo esc_attr( $value ); ?>" <?php checked( in_array( $value, (array) $settings['weekdays'], true ) ); ?>> <?php echo esc_html( $label ); ?></label>
+<?php endforeach; ?>
+</fieldset>
+<div class="bma-field" id="bma-month-field">
+<label for="bma-month-day">Day of month</label>
+<select name="month_day" id="bma-month-day">
+<?php for ( $day_number = 1; $day_number <= 31; $day_number++ ) : ?>
+<option value="<?php echo esc_attr( $day_number ); ?>" <?php selected( $settings['month_day'], (string) $day_number ); ?>><?php echo esc_html( $day_number ); ?></option>
+<?php endfor; ?>
+<option value="last" <?php selected( $settings['month_day'], 'last' ); ?>>Last day of month</option>
+</select>
+<p class="description">If the selected date does not exist, use the last day of that month.</p>
+</div>
 <div class="bma-field">
 <label for="bma-time">
 								Time
@@ -2755,6 +2794,12 @@ by
     ?>"
 								required
 							>
+</div>
+<div class="bma-schedule-preview" aria-live="polite">
+<strong>Next three planned runs</strong>
+<p id="bma-preview-message">Loading preview...</p>
+<ol id="bma-preview-runs"></ol>
+<small>Preview uses the settings above. Save Schedule to apply. Scheduling must be enabled. WP-Cron may run later if the site has no traffic. Daylight-saving adjustments follow the WordPress timezone.</small>
 </div>
 <div class="bma-timezone-note">
 Timezone:
@@ -3214,6 +3259,28 @@ Timezone:
 .bma-field select,.bma-field input {
     width:100%;
     max-width:100%;
+    
+}
+#bma-weekdays-field label {
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin:8px 14px 0 0;
+    
+}
+#bma-weekdays-field input[type="checkbox"] {
+    width:auto;
+    
+}
+.bma-schedule-preview {
+    margin:16px 0;
+    padding:14px;
+    background:#f6f7f7;
+    border-radius:6px;
+    
+}
+.bma-schedule-preview ol {
+    margin-left:20px;
     
 }
 .bma-timezone-note {
@@ -3857,20 +3924,61 @@ document.getElementById('bma-frequency');
 const dayField =
 document.getElementById('bma-day-field');
 function updateFrequencyFields() {
-if (!frequency || !dayField) {
-return;
+if (!frequency || !dayField) return;
+dayField.hidden = frequency.value !== 'weekly';
+dayField.style.display = dayField.hidden ? 'none' : '';
+const weekdaysField = document.getElementById('bma-weekdays-field');
+const monthField = document.getElementById('bma-month-field');
+if (weekdaysField) weekdaysField.hidden = frequency.value !== 'weekdays';
+if (monthField) monthField.hidden = frequency.value !== 'monthly';
 }
-dayField.style.display =
-frequency.value === 'daily'
-? 'none'
-: 'block';
+let previewTimer;
+let previewRequest = 0;
+const bmaSchedule = <?php echo wp_json_encode( array( 'url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( 'bma_us_schedule_preview' ) ) ); ?>;
+function previewSchedule() {
+updateFrequencyFields();
+const request = ++previewRequest;
+clearTimeout(previewTimer);
+const message = document.getElementById('bma-preview-message');
+const list = document.getElementById('bma-preview-runs');
+if (!message || !list) return;
+list.replaceChildren();
+message.textContent = 'Updating preview...';
+previewTimer = setTimeout(async function () {
+const form = frequency.closest('form');
+const body = new URLSearchParams();
+body.set('action', 'bma_us_schedule_preview');
+body.set('nonce', bmaSchedule.nonce);
+for (const name of ['frequency', 'day', 'time', 'month_day']) {
+const field = form.querySelector('[name="' + name + '"]');
+if (field) body.set('schedule[' + name + ']', field.value);
+}
+form.querySelectorAll('[name="weekdays[]"]:checked').forEach(function (field) {
+body.append('schedule[weekdays][]', field.value);
+});
+try {
+const response = await fetch(bmaSchedule.url, {method: 'POST', credentials: 'same-origin', body: body});
+const result = await response.json();
+if (request !== previewRequest) return;
+if (!result.success) throw new Error(result.data && result.data.message || 'Preview unavailable. Reload the page and try again.');
+message.textContent = '';
+result.data.runs.forEach(function (run) {
+const item = document.createElement('li');
+item.textContent = run;
+list.appendChild(item);
+});
+} catch (error) {
+if (request === previewRequest) message.textContent = error.message || 'Preview unavailable.';
+}
+}, 250);
 }
 if (frequency) {
-frequency.addEventListener(
-'change',
-updateFrequencyFields
-);
-updateFrequencyFields();
+const form = frequency.closest('form');
+form.addEventListener('change', previewSchedule);
+form.addEventListener('input', function (event) {
+if (event.target.name === 'time') previewSchedule();
+});
+previewSchedule();
 }
 });
 </script>
