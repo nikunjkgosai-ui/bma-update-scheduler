@@ -18,10 +18,58 @@ final class BMA_US_Private_Updater {
   add_filter( 'plugins_api', array( __CLASS__, 'plugin_information' ), 20, 3 );
   add_filter( 'upgrader_pre_download', array( __CLASS__, 'download_private_package' ), 10, 4 );
   add_action( 'delete_site_transient_update_plugins', array( __CLASS__, 'clear_release_cache' ), 10, 0 );
+  add_action( 'admin_post_bma_us_check_private_updates', array( __CLASS__, 'check_now' ) );
+  add_action( 'admin_notices', array( __CLASS__, 'check_notice' ) );
+  add_action( 'network_admin_notices', array( __CLASS__, 'check_notice' ) );
  }
 
  public static function clear_release_cache() {
   delete_site_transient( self::CACHE_KEY );
+ }
+
+ public static function check_now_url() {
+  $url = add_query_arg(
+   array(
+    'action'      => 'bma_us_check_private_updates',
+    'bma_network' => is_network_admin() ? 1 : 0,
+   ),
+   admin_url( 'admin-post.php' )
+  );
+  return wp_nonce_url( $url, 'bma_us_check_private_updates' );
+ }
+
+ public static function check_now() {
+  if ( ! current_user_can( 'update_plugins' ) ) {
+   wp_die( 'You do not have permission to check for plugin updates.' );
+  }
+  check_admin_referer( 'bma_us_check_private_updates' );
+  $network = isset( $_GET['bma_network'] ) && is_string( $_GET['bma_network'] ) && '1' === sanitize_key( wp_unslash( $_GET['bma_network'] ) );
+  self::clear_release_cache();
+  delete_site_transient( 'update_plugins' );
+  require_once ABSPATH . 'wp-admin/includes/update.php';
+  wp_update_plugins();
+  $release = self::get_latest_release();
+  $status = is_wp_error( $release ) ? 'error' : 'current';
+  if ( is_array( $release ) && version_compare( self::installed_version(), $release['version'], '<' ) ) {
+   $status = 'available';
+  }
+  $target = $network ? network_admin_url( 'plugins.php' ) : admin_url( 'plugins.php' );
+  wp_safe_redirect( add_query_arg( 'bma_us_update_check', $status, $target ) );
+  exit;
+ }
+
+ public static function check_notice() {
+  if ( ! current_user_can( 'update_plugins' ) || empty( $_GET['bma_us_update_check'] ) || ! is_string( $_GET['bma_us_update_check'] ) ) {
+   return;
+  }
+  $status = sanitize_key( wp_unslash( $_GET['bma_us_update_check'] ) );
+  if ( 'available' === $status ) {
+   echo '<div class="notice notice-success is-dismissible"><p><strong>BMA Update Scheduler:</strong> A newer version is available below.</p></div>';
+  } elseif ( 'current' === $status ) {
+   echo '<div class="notice notice-success is-dismissible"><p><strong>BMA Update Scheduler:</strong> You are using the latest version.</p></div>';
+  } elseif ( 'error' === $status ) {
+   echo '<div class="notice notice-error is-dismissible"><p><strong>BMA Update Scheduler:</strong> The private release could not be checked. Verify the GitHub token and try again.</p></div>';
+  }
  }
 
  public static function check_update( $update, $plugin_data, $plugin_file, $locales ) {
