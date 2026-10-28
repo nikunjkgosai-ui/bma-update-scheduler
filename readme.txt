@@ -3,7 +3,7 @@ Tags: updates, scheduled updates, backup, maintenance
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.9
+Stable tag: 1.0.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -88,6 +88,11 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 
 == Changelog ==
 
+= 1.0.10 =
+* Added a Check for updates action beside Deactivate on the Plugins screen.
+* The action securely refreshes private GitHub metadata without installing an update.
+* Added success, current-version and connection-error notices after a manual check.
+
 = 1.0.9 =
 * Added a bundled icon for private update rows and plugin information.
 * Added private plugin-information support so version details no longer depend on WordPress.org.
@@ -140,6 +145,9 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 * Initial standalone package of the BMA Update Scheduler snippet.
 
 == Upgrade Notice ==
+
+= 1.0.10 =
+Adds an administrator-controlled Check for updates action on the Plugins screen.
 
 = 1.0.9 =
 Adds the BMA icon and private version-details support for future update offers.
