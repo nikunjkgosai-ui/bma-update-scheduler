@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BMA Update Scheduler
  * Description: Manual and scheduled WordPress updates with an existing-backup safety gate, history, health checks and email alerts.
- * Version: 1.0.8
+ * Version: 1.0.9
  * Requires at least: 6.3
  * Requires PHP: 7.4
  * Author: Branding Marketing Agency

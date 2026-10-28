@@ -3,7 +3,7 @@ Tags: updates, scheduled updates, backup, maintenance
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.8
+Stable tag: 1.0.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -88,6 +88,11 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 
 == Changelog ==
 
+= 1.0.9 =
+* Added a bundled icon for private update rows and plugin information.
+* Added private plugin-information support so version details no longer depend on WordPress.org.
+* Displays authenticated GitHub release notes in the version-details changelog.
+
 = 1.0.8 =
 * Added Daily, Weekly, Selected weekdays and Monthly scheduling controls.
 * Added monthly dates 1 through 31 plus an explicit Last day of month option.
@@ -135,6 +140,9 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 * Initial standalone package of the BMA Update Scheduler snippet.
 
 == Upgrade Notice ==
+
+= 1.0.9 =
+Adds the BMA icon and private version-details support for future update offers.
 
 = 1.0.8 =
 Adds flexible calendar scheduling and a live preview of the next three planned runs.
