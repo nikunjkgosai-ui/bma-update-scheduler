@@ -10,11 +10,12 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 final class BMA_US_Private_Updater {
  const UPDATE_URI = 'https://github.com/nikunjkgosai-ui/bma-update-scheduler';
  const API_ROOT = 'https://api.github.com/repos/nikunjkgosai-ui/bma-update-scheduler';
- const CACHE_KEY = 'bma_us_private_release_2';
+ const CACHE_KEY = 'bma_us_private_release_3';
  const CACHE_TTL = 21600;
 
  public static function boot() {
   add_filter( 'update_plugins_github.com', array( __CLASS__, 'check_update' ), 10, 4 );
+  add_filter( 'plugins_api', array( __CLASS__, 'plugin_information' ), 20, 3 );
   add_filter( 'upgrader_pre_download', array( __CLASS__, 'download_private_package' ), 10, 4 );
   add_action( 'delete_site_transient_update_plugins', array( __CLASS__, 'clear_release_cache' ), 10, 0 );
  }
@@ -43,7 +44,38 @@ final class BMA_US_Private_Updater {
    'requires'     => $release['requires'],
    'requires_php' => $release['requires_php'],
    'tested'       => $release['tested'],
+   'icons'        => self::icons(),
    'autoupdate'   => false,
+  );
+ }
+
+ public static function plugin_information( $result, $action, $args ) {
+  if ( 'plugin_information' !== $action || ! is_object( $args ) || dirname( BMA_US_PLUGIN_BASENAME ) !== ( $args->slug ?? '' ) ) {
+   return $result;
+  }
+  $release = self::get_latest_release();
+  if ( is_wp_error( $release ) || ! is_array( $release ) ) {
+   return $result;
+  }
+  $changelog = '' !== $release['body'] ? nl2br( esc_html( $release['body'] ) ) : '<p>See the private GitHub release for this version.</p>';
+  return (object) array(
+   'name'              => 'BMA Update Scheduler',
+   'slug'              => dirname( BMA_US_PLUGIN_BASENAME ),
+   'version'           => $release['version'],
+   'author'            => '<a href="https://www.brandingmarketingagency.com/">Branding Marketing Agency</a>',
+   'homepage'          => self::UPDATE_URI,
+   'requires'          => $release['requires'],
+   'tested'            => $release['tested'],
+   'requires_php'      => $release['requires_php'],
+   'last_updated'      => $release['published_at'],
+   'download_link'     => $release['package'],
+   'external'          => true,
+   'short_description' => 'Manual and scheduled WordPress updates with an existing-backup safety gate, history, health checks and email alerts.',
+   'sections'          => array(
+    'description' => '<p>BMA Update Scheduler provides manual and scheduled plugin, theme and core updates with an existing UpdraftPlus backup safety gate, update history, post-update health checks, locking and optional email alerts.</p>',
+    'changelog'   => $changelog,
+   ),
+   'icons'             => self::icons(),
   );
  }
 
@@ -101,6 +133,8 @@ final class BMA_US_Private_Updater {
    'requires'     => '6.3',
    'requires_php' => '7.4',
    'tested'       => '7.1.3',
+   'body'         => sanitize_textarea_field( $data['body'] ?? '' ),
+   'published_at' => sanitize_text_field( $data['published_at'] ?? '' ),
   );
   set_site_transient( self::CACHE_KEY, $release, self::CACHE_TTL );
   return $release;
@@ -180,6 +214,10 @@ final class BMA_US_Private_Updater {
    $version = sanitize_text_field( $data['Version'] ?? '0.0.0' );
   }
   return $version;
+ }
+
+ private static function icons() {
+  return array( 'svg' => plugins_url( 'assets/icon.svg', BMA_US_PLUGIN_FILE ) );
  }
 
  private static function is_asset_api_url( $url ) {
