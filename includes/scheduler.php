@@ -382,12 +382,13 @@ function bma_us_update_selected_now() {
     }
     $plugins = array_values( array_unique( $plugins ) );
     $themes = array_values( array_unique( $themes ) );
-    if ( empty( $plugins ) && empty( $themes ) ) {
+    $update_core = isset( $_POST['update_core'] ) && is_scalar( $_POST['update_core'] ) && '1' === sanitize_key( wp_unslash( $_POST['update_core'] ) );
+    if ( empty( $plugins ) && empty( $themes ) && ! $update_core ) {
         bma_us_notice_redirect( add_query_arg( 'bma_notice', 'nothing_selected', admin_url( 'tools.php?page=bma-update-scheduler' ) ) );
         exit;
         
     }
-    $results = bma_us_execute_guarded_updates( $plugins, $themes, false, 'manual' );
+    $results = bma_us_execute_guarded_updates( $plugins, $themes, $update_core, 'manual' );
     bma_us_notice_redirect( add_query_arg( array( 'bma_notice' => ! empty( $results['blocked'] ) ? 'updates_blocked' : 'updates_finished', 'bma_blocked' => $results['blocked'] ?? 0, 'bma_ok' => $results['success'] ?? 0, 'bma_failed' => $results['failed'] ?? 0, 'bma_skipped' => $results['skipped'] ?? 0, ), admin_url( 'tools.php?page=bma-update-scheduler' ) ) );
     exit;
     
@@ -2211,6 +2212,7 @@ Timezone:
 <table class="bma-table">
 <thead>
 <tr>
+<th class="bma-checkbox-column">Select</th>
 <th>Component</th>
 								<th>Installed Version</th>
 								<th>Available Version</th>
@@ -2219,6 +2221,19 @@ Timezone:
 </thead>
 <tbody>
 <tr>
+<td class="bma-checkbox-column">
+<?php if ( $core_update_count ) : ?>
+<input
+									type="checkbox"
+									class="bma-update-checkbox"
+									name="update_core"
+									value="1"
+									aria-label="Select WordPress core update"
+								>
+<?php else : ?>
+<span class="bma-muted">&mdash;</span>
+<?php endif; ?>
+</td>
 <td>
 <div class="bma-item">
 <div class="bma-icon">
@@ -2572,7 +2587,7 @@ by
 </table>
 </div>
 </div>
-<?php if ( $plugin_update_count || $theme_update_count ) : ?>
+<?php if ( $plugin_update_count || $theme_update_count || $core_update_count ) : ?>
 
 				<div class="bma-action-bar">
 <div>
@@ -2821,8 +2836,14 @@ Timezone:
 						If nothing is selected, all available updates in that category will be installed.
 					</p>
 <div class="bma-selection-grid">
-<div>
+<div class="bma-selection-panel">
+<div class="bma-selection-heading">
+<label class="bma-select-all-control">
+<input type="checkbox" class="bma-scheduled-select-all" data-target=".bma-scheduled-plugin">
+<span>Select all</span>
+</label>
 <h4>Plugins</h4>
+</div>
 <div class="bma-selection-list">
 <?php foreach ( $plugins as $plugin_file => $plugin_data ) : ?>
 
@@ -2836,6 +2857,7 @@ Timezone:
 								<label>
 <input
 										type="checkbox"
+										class="bma-scheduled-plugin"
 										name="selected_plugins[]"
 										value="<?php echo esc_attr( $plugin_file );
     ?>"
@@ -2853,14 +2875,21 @@ Timezone:
 
 							</div>
 </div>
-<div>
+<div class="bma-selection-panel">
+<div class="bma-selection-heading">
+<label class="bma-select-all-control">
+<input type="checkbox" class="bma-scheduled-select-all" data-target=".bma-scheduled-theme">
+<span>Select all</span>
+</label>
 <h4>Themes</h4>
+</div>
 <div class="bma-selection-list">
 <?php foreach ( $themes as $stylesheet => $theme ) : ?>
 
 								<label>
 <input
 										type="checkbox"
+										class="bma-scheduled-theme"
 										name="selected_themes[]"
 										value="<?php echo esc_attr( $stylesheet );
     ?>"
@@ -3184,20 +3213,35 @@ Timezone:
 }
 .bma-scheduler-section {
     margin-top:30px;
+    border:1px solid #d9e2ec;
+    border-radius:16px;
+    box-shadow:0 12px 34px rgba(15,23,42,.07);
+    background:#f8fafc;
     
 }
+.bma-scheduler-header {
+    padding:24px 26px;
+    background:linear-gradient(135deg,#fff 0%,#f1f7ff 100%);
+    border-bottom-color:#dbe7f3;
+}
+.bma-scheduler-header h2 {
+    font-size:20px;
+    letter-spacing:-.01em;
+}
 .bma-schedule-enabled {
-    background:#edfaef;
-    color:#137333;
-    padding:7px 12px;
+    background:#dcfce7;
+    color:#166534;
+    border:1px solid #bbf7d0;
+    padding:8px 13px;
     border-radius:20px;
     font-weight:600;
     
 }
 .bma-schedule-disabled {
-    background:#f0f0f1;
-    color:#646970;
-    padding:7px 12px;
+    background:#f1f5f9;
+    color:#475569;
+    border:1px solid #e2e8f0;
+    padding:8px 13px;
     border-radius:20px;
     font-weight:600;
     
@@ -3205,18 +3249,22 @@ Timezone:
 .bma-scheduler-grid {
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:20px;
-    padding:22px;
+    gap:22px;
+    padding:26px;
     
 }
 .bma-schedule-card {
-    border:1px solid #e2e4e7;
-    border-radius:9px;
-    padding:20px;
+    border:1px solid #e2e8f0;
+    border-radius:14px;
+    padding:22px;
+    background:#fff;
+    box-shadow:0 4px 16px rgba(15,23,42,.04);
     
 }
 .bma-schedule-card h3 {
-    margin-top:0;
+    margin:0 0 14px;
+    font-size:16px;
+    color:#0f172a;
     
 }
 .bma-toggle-row {
@@ -3224,9 +3272,15 @@ Timezone:
     align-items:center;
     justify-content:space-between;
     gap:20px;
-    padding:14px 0;
-    border-bottom:1px solid #f0f0f1;
+    padding:14px 12px;
+    margin:0 -4px;
+    border-bottom:1px solid #eef2f7;
+    border-radius:9px;
+    transition:background .15s ease;
     
+}
+.bma-toggle-row:hover {
+    background:#f8fafc;
 }
 .bma-toggle-row:last-child {
     border-bottom:0;
@@ -3261,6 +3315,16 @@ Timezone:
     max-width:100%;
     
 }
+.bma-schedule-card .bma-field select,.bma-schedule-card .bma-field input[type="time"] {
+    min-height:44px;
+    border-color:#cbd5e1;
+    border-radius:8px;
+    background:#fff;
+}
+.bma-schedule-card .bma-field select:focus,.bma-schedule-card .bma-field input[type="time"]:focus {
+    border-color:#2271b1;
+    box-shadow:0 0 0 2px rgba(34,113,177,.14);
+}
 #bma-weekdays-field label {
     display:inline-flex;
     align-items:center;
@@ -3274,9 +3338,10 @@ Timezone:
 }
 .bma-schedule-preview {
     margin:16px 0;
-    padding:14px;
-    background:#f6f7f7;
-    border-radius:6px;
+    padding:16px;
+    background:linear-gradient(135deg,#eff6ff 0%,#f8fafc 100%);
+    border:1px solid #dbeafe;
+    border-radius:10px;
     
 }
 .bma-schedule-preview ol {
@@ -3284,14 +3349,20 @@ Timezone:
     
 }
 .bma-timezone-note {
-    background:#f6f7f7;
-    padding:12px;
-    border-radius:7px;
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
+    padding:13px 14px;
+    border-radius:9px;
     
 }
 .bma-specific-selection {
-    padding:0 22px 22px;
+    padding:4px 26px 26px;
     
+}
+.bma-specific-selection > h3 {
+    margin:0 0 6px;
+    font-size:18px;
+    color:#0f172a;
 }
 .bma-specific-selection > p {
     color:#646970;
@@ -3300,35 +3371,83 @@ Timezone:
 .bma-selection-grid {
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:20px;
+    gap:22px;
     
 }
+.bma-selection-panel {
+    min-width:0;
+    padding:16px;
+    border:1px solid #e2e8f0;
+    border-radius:14px;
+    background:#fff;
+    box-shadow:0 4px 16px rgba(15,23,42,.035);
+}
+.bma-selection-heading {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:12px;
+}
+.bma-selection-heading h4 {
+    margin:0;
+    padding-left:12px;
+    border-left:1px solid #e2e8f0;
+    font-size:15px;
+    color:#0f172a;
+}
+.bma-select-all-control {
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    margin:0;
+    padding:6px 10px;
+    border:1px solid #bfdbfe;
+    border-radius:999px;
+    background:#eff6ff;
+    color:#1d4ed8;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+}
+.bma-select-all-control input {
+    margin:0;
+}
 .bma-selection-list {
-    border:1px solid #e2e4e7;
-    border-radius:8px;
+    border:1px solid #e2e8f0;
+    border-radius:10px;
     max-height:250px;
     overflow:auto;
+    background:#fff;
     
 }
 .bma-selection-list label {
-    display:block;
-    padding:10px 12px;
-    border-bottom:1px solid #f0f0f1;
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:11px 12px;
+    border-bottom:1px solid #eef2f7;
+    transition:background .15s ease;
     
+}
+.bma-selection-list label:hover {
+    background:#f8fafc;
 }
 .bma-selection-list label:last-child {
     border-bottom:0;
     
 }
 .bma-selection-list input {
-    margin-right:7px;
+    margin:0;
     
 }
 .bma-update-scheduler .bma-notification-settings {
-    margin:0;
-    padding:22px;
+    margin:0 26px 24px;
+    padding:20px;
     border-top:1px solid #e2e4e7;
-    background:#fafbfc;
+    border:1px solid #e2e8f0;
+    border-radius:14px;
+    background:#fff;
+    box-shadow:0 4px 16px rgba(15,23,42,.035);
     box-sizing:border-box;
     
 }
@@ -3374,6 +3493,11 @@ Timezone:
     border-top:1px solid #c5d9ed;
     padding:18px 22px;
     
+}
+.bma-scheduler-section .bma-next-run {
+    padding:18px 24px;
+    border-top:1px solid #dbe7f3;
+    background:linear-gradient(135deg,#eff6ff 0%,#f8fafc 100%);
 }
 .bma-next-run > div {
     display:flex;
@@ -3897,6 +4021,28 @@ checkbox.addEventListener(
 'change',
 updateCounter
 );
+});
+document.querySelectorAll('.bma-scheduled-select-all').forEach(function (control) {
+const targetSelector = control.dataset.target;
+const targets = targetSelector ? document.querySelectorAll(targetSelector) : [];
+function syncScheduledSelectAll() {
+let checked = 0;
+targets.forEach(function (target) {
+if (target.checked) checked++;
+});
+control.checked = targets.length > 0 && checked === targets.length;
+control.indeterminate = checked > 0 && checked < targets.length;
+}
+control.addEventListener('change', function () {
+targets.forEach(function (target) {
+target.checked = control.checked;
+});
+control.indeterminate = false;
+});
+targets.forEach(function (target) {
+target.addEventListener('change', syncScheduledSelectAll);
+});
+syncScheduledSelectAll();
 });
 const updateForm =
 document.getElementById('bma-manual-update-form');
