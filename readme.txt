@@ -3,7 +3,7 @@ Tags: updates, scheduled updates, backup, maintenance
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.11
+Stable tag: 1.0.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -84,6 +84,13 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 
 == Changelog ==
 
+= 1.0.12 =
+* Added WordPress core to the manual update selection form.
+* Core-only updates now display the Update Selected Now controls.
+* Manual core selections use the existing backup gate, locking, updater and health checks.
+* Modernized the Scheduled Updates interface without changing its saved settings or execution path.
+* Added independent Select all controls for scheduled plugin and theme selections.
+
 = 1.0.11 =
 * Removed the GitHub token and wp-config.php requirement for BMA updates.
 * Restricted public update packages to the exact BMA repository, release tag and versioned ZIP filename.
@@ -146,6 +153,9 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 * Initial standalone package of the BMA Update Scheduler snippet.
 
 == Upgrade Notice ==
+
+= 1.0.12 =
+Restores manual WordPress core update selection and execution.
 
 = 1.0.11 =
 Moves BMA updates to the public GitHub release feed; no token or wp-config.php change is required.
