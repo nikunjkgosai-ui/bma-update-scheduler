@@ -3,7 +3,7 @@ Tags: updates, scheduled updates, backup, maintenance
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.12
+Stable tag: 1.0.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -84,6 +84,13 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 
 == Changelog ==
 
+= 1.0.13 =
+* Added compact dashboard shortcuts for Scheduled Updates, Manual Updates and Update History.
+* Made the dashboard summary cards accessible links with hover and keyboard-focus states.
+* Added the available core-update count to the WordPress summary card.
+* Reduced dashboard card, table, section and scheduler spacing.
+* Refreshed the responsive top-card layout without changing update behavior.
+
 = 1.0.12 =
 * Added WordPress core to the manual update selection form.
 * Core-only updates now display the Update Selected Now controls.
@@ -154,6 +161,9 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 
 == Upgrade Notice ==
 
+= 1.0.13 =
+Compact dashboard navigation, clickable summary cards and reduced interface spacing.
+
 = 1.0.12 =
 Restores manual WordPress core update selection and execution.
 
@@ -183,3 +193,4 @@ Adds opt-in authenticated updates from the private GitHub release repository. Co
 
 = 1.0.1 =
 Licensing, documentation and source-formatting update. Existing settings/history are retained.
+
