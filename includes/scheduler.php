@@ -2122,8 +2122,13 @@ Timezone:
 		<?php bma_us_render_post_update_health();
     ?>
 
-<div class="bma-summary-grid">
-<div class="bma-card">
+<div class="bma-dashboard-top">
+<nav class="bma-dashboard-shortcuts" aria-label="Dashboard shortcuts">
+<a href="#bma-scheduled-updates">Scheduled Updates</a>
+<a href="#bma-manual-update-form">Manual Updates</a>
+<a href="#bma-update-history">Update History</a>
+</nav>
+<a class="bma-card" href="#bma-wordpress-core" aria-label="View WordPress core updates">
 <div class="bma-card-label">
 					WordPress
 				</div>
@@ -2132,10 +2137,12 @@ Timezone:
     ?>
 				</div>
 <div class="bma-card-description">
-					Current version
+<?php
+ echo esc_html( $core_update_count . ' update' . ( 1 === $core_update_count ? '' : 's' ) . ' available' );
+    ?>
 				</div>
-</div>
-<div class="bma-card">
+</a>
+<a class="bma-card" href="#bma-plugin-updates" aria-label="View plugin updates">
 <div class="bma-card-label">
 					Installed Plugins
 				</div>
@@ -2149,8 +2156,8 @@ Timezone:
     ?>
 
 				</div>
-</div>
-<div class="bma-card">
+</a>
+<a class="bma-card" href="#bma-theme-updates" aria-label="View theme updates">
 <div class="bma-card-label">
 					Installed Themes
 				</div>
@@ -2164,8 +2171,8 @@ Timezone:
     ?>
 
 				</div>
-</div>
-<div class="bma-card bma-card-highlight">
+</a>
+<a class="bma-card bma-card-highlight" href="#bma-manual-update-form" aria-label="View all available updates">
 <div class="bma-card-label">
 					Updates Available
 				</div>
@@ -2179,7 +2186,7 @@ Timezone:
     ?>
 
 				</div>
-</div>
+</a>
 </div>
 <?php bma_us_render_backup_safety();
     ?>
@@ -2199,7 +2206,7 @@ Timezone:
  wp_nonce_field( 'bma_us_update_now' );
     ?>
 			
-<div class="bma-section">
+<div class="bma-section" id="bma-wordpress-core">
 <div class="bma-section-header">
 <div>
 <h2>WordPress Core</h2>
@@ -2280,7 +2287,7 @@ Timezone:
 </table>
 </div>
 </div>
-<div class="bma-section">
+<div class="bma-section" id="bma-plugin-updates">
 <div class="bma-section-header">
 <div>
 <h2>
@@ -2441,7 +2448,7 @@ by
 </table>
 </div>
 </div>
-<div class="bma-section">
+<div class="bma-section" id="bma-theme-updates">
 <div class="bma-section-header">
 <div>
 <h2>
@@ -2624,7 +2631,7 @@ by
     ?>
 
 		</form>
-<div class="bma-scheduler-section">
+<div class="bma-scheduler-section" id="bma-scheduled-updates">
 <div class="bma-scheduler-header">
 <div>
 <h2>Scheduled Updates</h2>
@@ -2987,19 +2994,60 @@ Timezone:
     padding:10px 15px;
     
 }
-.bma-summary-grid {
+.bma-dashboard-top {
     display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:18px;
-    margin-bottom:25px;
+    grid-template-columns:minmax(210px,.9fr) repeat(4,minmax(0,1fr));
+    gap:14px;
+    margin-bottom:16px;
+    align-items:stretch;
     
 }
+.bma-dashboard-shortcuts {
+    display:grid;
+    grid-template-rows:repeat(3,1fr);
+    gap:9px;
+}
+.bma-dashboard-shortcuts a {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:38px;
+    padding:0 14px;
+    border:1px solid #c3d8ee;
+    border-radius:9px;
+    background:#fff;
+    color:#3858e9;
+    font-size:14px;
+    font-weight:600;
+    text-decoration:none;
+    transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease,background .15s ease;
+}
+.bma-dashboard-shortcuts a:hover {
+    border-color:#3858e9;
+    background:#f6f8ff;
+    box-shadow:0 4px 12px rgba(56,88,233,.12);
+    transform:translateY(-1px);
+}
+.bma-dashboard-shortcuts a:focus-visible,.bma-card:focus-visible {
+    outline:3px solid rgba(34,113,177,.28);
+    outline-offset:2px;
+}
 .bma-card {
+    display:block;
     background:#fff;
     border:1px solid #dcdcde;
     border-radius:10px;
-    padding:20px;
+    padding:16px 18px;
+    color:#1d2327;
+    text-decoration:none;
+    transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease;
     
+}
+.bma-card:hover {
+    color:#1d2327;
+    border-color:#9abfe0;
+    box-shadow:0 6px 18px rgba(15,23,42,.09);
+    transform:translateY(-2px);
 }
 .bma-card-highlight {
     border-top:3px solid #2271b1;
@@ -3009,11 +3057,11 @@ Timezone:
     font-size:13px;
     font-weight:600;
     color:#646970;
-    margin-bottom:10px;
+    margin-bottom:7px;
     
 }
 .bma-card-number {
-    font-size:30px;
+    font-size:29px;
     font-weight:700;
     line-height:1.1;
     
@@ -3021,14 +3069,14 @@ Timezone:
 .bma-card-description {
     color:#646970;
     font-size:13px;
-    margin-top:8px;
+    margin-top:6px;
     
 }
 .bma-section,.bma-scheduler-section {
     background:#fff;
     border:1px solid #dcdcde;
     border-radius:10px;
-    margin-bottom:22px;
+    margin-bottom:14px;
     overflow:hidden;
     
 }
@@ -3036,8 +3084,8 @@ Timezone:
     display:flex;
     justify-content:space-between;
     align-items:center;
-    gap:20px;
-    padding:20px 22px;
+    gap:16px;
+    padding:15px 18px;
     border-bottom:1px solid #e2e4e7;
     
 }
@@ -3078,7 +3126,7 @@ Timezone:
 }
 .bma-table th {
     text-align:left;
-    padding:12px 18px;
+    padding:9px 14px;
     background:#f6f7f7;
     color:#50575e;
     font-size:12px;
@@ -3086,7 +3134,7 @@ Timezone:
     
 }
 .bma-table td {
-    padding:14px 18px;
+    padding:10px 14px;
     border-top:1px solid #f0f0f1;
     vertical-align:middle;
     
@@ -3112,7 +3160,7 @@ Timezone:
 .bma-item {
     display:flex;
     align-items:center;
-    gap:12px;
+    gap:9px;
     
 }
 .bma-item strong,.bma-item small {
@@ -3197,8 +3245,8 @@ Timezone:
     background:#fff;
     border:1px solid #dcdcde;
     border-radius:10px;
-    padding:15px 18px;
-    margin:-5px 0 25px;
+    padding:12px 15px;
+    margin:-2px 0 16px;
     
 }
 .bma-action-right {
@@ -3212,7 +3260,7 @@ Timezone:
     
 }
 .bma-scheduler-section {
-    margin-top:30px;
+    margin-top:18px;
     border:1px solid #d9e2ec;
     border-radius:16px;
     box-shadow:0 12px 34px rgba(15,23,42,.07);
@@ -3220,7 +3268,7 @@ Timezone:
     
 }
 .bma-scheduler-header {
-    padding:24px 26px;
+    padding:17px 20px;
     background:linear-gradient(135deg,#fff 0%,#f1f7ff 100%);
     border-bottom-color:#dbe7f3;
 }
@@ -3249,14 +3297,14 @@ Timezone:
 .bma-scheduler-grid {
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:22px;
-    padding:26px;
+    gap:16px;
+    padding:18px;
     
 }
 .bma-schedule-card {
     border:1px solid #e2e8f0;
     border-radius:14px;
-    padding:22px;
+    padding:16px;
     background:#fff;
     box-shadow:0 4px 16px rgba(15,23,42,.04);
     
@@ -3920,9 +3968,14 @@ Timezone:
 
 }
 @media(max-width:1100px) {
-    .bma-summary-grid {
+    .bma-dashboard-top {
     grid-template-columns:repeat(2,1fr);
     
+}
+.bma-dashboard-shortcuts {
+    grid-column:1 / -1;
+    grid-template-columns:repeat(3,1fr);
+    grid-template-rows:1fr;
 }
 
 }
@@ -3932,9 +3985,14 @@ Timezone:
     flex-direction:column;
     
 }
-.bma-summary-grid,.bma-scheduler-grid,.bma-selection-grid {
+.bma-dashboard-top,.bma-scheduler-grid,.bma-selection-grid {
     grid-template-columns:1fr;
     
+}
+.bma-dashboard-shortcuts {
+    grid-column:auto;
+    grid-template-columns:1fr;
+    grid-template-rows:repeat(3,1fr);
 }
 
 }
@@ -4241,7 +4299,7 @@ function bma_us_render_update_history() {
     $last_run = get_option( BMA_US_LAST_RUN_OPTION, array() );
     ?>
 
-<div class="bma-section bma-history-section">
+<div class="bma-section bma-history-section" id="bma-update-history">
 <div class="bma-section-header">
 <div>
 <h2>
@@ -4507,3 +4565,4 @@ update records.
 <?php
 
 }
+
