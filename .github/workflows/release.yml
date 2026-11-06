@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          header_version="$(sed -n 's/^ \* Version: //p' bma-update-scheduler.php | head -n 1)"
+          header_version="$(sed -n 's/^ \\* Version: //p' bma-update-scheduler.php | head -n 1 | tr -d '\\r')"
           stable_tag="$(sed -n 's/^Stable tag: //p' readme.txt | head -n 1 | tr -d '\\r')"
           test "$VERSION" = "$header_version"
           test "$VERSION" = "$stable_tag"
