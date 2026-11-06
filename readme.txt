@@ -3,7 +3,7 @@ Tags: updates, scheduled updates, backup, maintenance
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.14
+Stable tag: 1.0.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -83,6 +83,11 @@ BMA excludes itself and Code Snippets from BMA's scheduled update batches. WordP
 A consistent MySQL/MariaDB connection supporting advisory locks, WordPress filesystem access and active UpdraftPlus with a qualifying backup. WP-Cron needs traffic or a server cron trigger. Email delivery depends on the site's mail configuration.
 
 == Changelog ==
+
+= 1.0.15 =
+* Replaced fragile Unicode interface glyphs with encoding-safe HTML entities.
+* Corrected corrupted check, cross, status-dot, dash and navigation-arrow symbols.
+* Kept scheduling, backup protection, locking, update execution and reporting behavior unchanged.
 
 = 1.0.14 =
 * Fixed schedule replacement for time adjustments within WordPress's ten-minute duplicate-event window.
@@ -166,6 +171,9 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 * Initial standalone package of the BMA Update Scheduler snippet.
 
 == Upgrade Notice ==
+
+= 1.0.15 =
+Corrects interface icons and symbols that could display as corrupted text.
 
 = 1.0.14 =
 Safely replaces scheduled cron events, including time changes smaller than ten minutes.
