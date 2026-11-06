@@ -823,17 +823,17 @@ function bma_us_render_backup_safety() {
 <?php if ( $backup['installed'] && $backup['active'] ) : ?>
 
 					<strong class="bma-backup-good-text">
-						â— Active
+						&#9679; Active
 					</strong>
 <?php elseif ( $backup['installed'] ) : ?>
 
 					<strong class="bma-backup-danger-text">
-						â— Inactive
+						&#9679; Inactive
 					</strong>
 <?php else : ?>
 
 					<strong class="bma-backup-neutral-text">
-						â€” Not Detected
+						&mdash; Not Detected
 					</strong>
 <?php endif;
     ?>
@@ -846,7 +846,7 @@ function bma_us_render_backup_safety() {
 <?php if ( $backup['history_detected'] ) : ?>
 
 					<strong class="bma-backup-good-text">
-â— Detected
+&#9679; Detected
 <?php
  if ( ! empty( $backup['backup_count'] ) ) {
         echo ' (' . esc_html( $backup['backup_count'] ) . ')';
@@ -858,7 +858,7 @@ function bma_us_render_backup_safety() {
 <?php else : ?>
 
 					<strong class="bma-backup-warning-text">
-						â— Not Verified
+						&#9679; Not Verified
 					</strong>
 <?php endif;
     ?>
@@ -893,7 +893,7 @@ function bma_us_render_backup_safety() {
         
     }
     else {
-        echo 'â€”';
+        echo '&mdash;';
         
     }
     ?>
@@ -958,12 +958,12 @@ function bma_us_render_backup_safety() {
     elseif ( ! empty( $component['verified'] ) ) : ?>
 
 								<span class="bma-component-ok">
-									âœ“
+									&#10003;
 								</span>
 <?php else : ?>
 
 								<span class="bma-component-failed">
-									âœ•
+									&#10005;
 								</span>
 <?php endif;
     ?>
@@ -2283,7 +2283,7 @@ Timezone:
 <?php else : ?>
 
 										<span class="bma-muted">
-											â€”
+											&mdash;
 										</span>
 <?php endif;
     ?>
@@ -2376,7 +2376,7 @@ Plugins
 										></span>
 <?php else : ?>
 
-										<span class="bma-muted">â€”</span>
+										<span class="bma-muted">&mdash;</span>
 <?php endif;
     ?>
 
@@ -2395,7 +2395,7 @@ Plugins
 <?php if ( $protected ) : ?>
 
 												<small class="bma-protected">
-													Protected â€” scheduler dependency
+													Protected &mdash; scheduler dependency
 												</small>
 <?php elseif ( ! empty( $plugin_data['AuthorName'] ) ) : ?>
 
@@ -2414,7 +2414,7 @@ by
 </td>
 <td>
 <?php
- echo esc_html( $plugin_data['Version'] ?? 'â€”' );
+ echo esc_html( $plugin_data['Version'] ?? '-' );
     ?>
 
 								</td>
@@ -2427,7 +2427,7 @@ by
 										</strong>
 <?php else : ?>
 
-										<span class="bma-muted">â€”</span>
+										<span class="bma-muted">&mdash;</span>
 <?php endif;
     ?>
 
@@ -2530,7 +2530,7 @@ Themes
 										>
 <?php else : ?>
 
-										<span class="bma-muted">â€”</span>
+										<span class="bma-muted">&mdash;</span>
 <?php endif;
     ?>
 
@@ -2573,7 +2573,7 @@ by
 										</strong>
 <?php else : ?>
 
-										<span class="bma-muted">â€”</span>
+										<span class="bma-muted">&mdash;</span>
 <?php endif;
     ?>
 
@@ -2655,12 +2655,12 @@ by
 <?php if ( $settings['enabled'] ) : ?>
 
 					<span class="bma-schedule-enabled">
-						â— Schedule Active
+						&#9679; Schedule Active
 					</span>
 <?php else : ?>
 
 					<span class="bma-schedule-disabled">
-						â— Schedule Disabled
+						&#9679; Schedule Disabled
 					</span>
 <?php endif;
     ?>
@@ -2844,7 +2844,7 @@ Timezone:
 							</strong>
 <br>
 <small>
-								Uses your WordPress timezone from Settings â†’ General.
+								Uses your WordPress timezone from Settings &rarr; General.
 							</small>
 </div>
 </div>
@@ -4278,9 +4278,9 @@ function bma_us_render_last_update_debug() {
         echo '<strong>Status:</strong> ' . esc_html( ucfirst( $status ) ) . '<br>';
         if ( ! empty( $detail['old_version'] ) || ! empty( $detail['new_version'] ) ) {
             echo '<strong>Version:</strong> ';
-            echo esc_html( ! empty( $detail['old_version'] ) ? $detail['old_version'] : 'â€”' );
+            echo esc_html( ! empty( $detail['old_version'] ) ? $detail['old_version'] : '-' );
             echo ' &rarr; ';
-            echo esc_html( ! empty( $detail['new_version'] ) ? $detail['new_version'] : 'â€”' );
+            echo esc_html( ! empty( $detail['new_version'] ) ? $detail['new_version'] : '-' );
             echo '<br>';
             
         }
@@ -4366,7 +4366,7 @@ function bma_us_render_update_history() {
         
     }
     else {
-        echo 'â€”';
+        echo '&mdash;';
         
     }
     ?>
@@ -4377,7 +4377,7 @@ function bma_us_render_update_history() {
 <small>Trigger</small>
 <strong>
 <?php
- echo esc_html( ucfirst( $last_run['trigger'] ?? 'â€”' ) );
+ echo esc_html( ucfirst( $last_run['trigger'] ?? '-' ) );
     ?>
 
 					</strong>
@@ -4490,14 +4490,14 @@ function bma_us_render_update_history() {
     $new = $record['new_version'] ?? '';
     if ( $old || $new ) {
         echo '<span class="bma-version-change">';
-        echo esc_html( $old ?: 'â€”' );
+        echo esc_html( $old ?: '-' );
         echo ' <span>&rarr;</span> ';
-        echo esc_html( $new ?: 'â€”' );
+        echo esc_html( $new ?: '-' );
         echo '</span>';
         
     }
     else {
-        echo '<span class="bma-muted">â€”</span>';
+        echo '<span class="bma-muted">&mdash;</span>';
         
     }
     ?>
@@ -4524,22 +4524,22 @@ Manual
 <?php if ( 'success' === $status ) : ?>
 
 	<span class="bma-history-status bma-history-success">
-		â— Success
+		&#9679; Success
 	</span>
 <?php elseif ( 'failed' === $status ) : ?>
 
 	<span class="bma-history-status bma-history-failed">
-		â— Failed
+		&#9679; Failed
 	</span>
 <?php elseif ( 'blocked' === $status ) : ?>
 
 	<span class="bma-history-status bma-history-blocked">
-		â— Blocked
+		&#9679; Blocked
 	</span>
 <?php else : ?>
 
 	<span class="bma-history-status bma-history-skipped">
-		â— Skipped
+		&#9679; Skipped
 	</span>
 <?php endif;
     ?>
@@ -4547,7 +4547,7 @@ Manual
 							</td>
 <td class="bma-history-message">
 <?php
- echo esc_html( $record['message'] ?? 'â€”' );
+ echo esc_html( $record['message'] ?? '-' );
     ?>
 
 							</td>
