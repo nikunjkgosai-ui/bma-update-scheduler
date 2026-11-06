@@ -207,29 +207,42 @@ function bma_us_schedule_preview() {
 
 
 function bma_us_reschedule_event( $settings ) {
-    
- $old = wp_next_scheduled( BMA_US_CRON_HOOK );
-    
+ $old = wp_next_scheduled( BMA_US_CRON_HOOK, array() );
+
  if ( empty( $settings['enabled'] ) ) {
         $result = wp_clear_scheduled_hook( BMA_US_CRON_HOOK, array(), true );
-        
-    }
-    
- else {
+    } else {
         $timestamp = bma_us_calculate_next_run( $settings );
-        $result = $timestamp ? ( (int) $old === (int) $timestamp ? true : wp_schedule_single_event( $timestamp, BMA_US_CRON_HOOK, array(), true ) ) : new WP_Error( 'bma_schedule_time', 'The next scheduled time could not be calculated.' );
-        
-  if ( true === $result && $old && (int) $old !== (int) $timestamp ) {
-            $removed = wp_unschedule_event( $old, BMA_US_CRON_HOOK, array(), true );
+        if ( ! $timestamp ) {
+            $result = new WP_Error( 'bma_schedule_time', 'The next scheduled time could not be calculated.' );
+        } elseif ( $old && (int) $old === (int) $timestamp ) {
+            // The requested event already exists. Do not create a duplicate.
+            $result = true;
+        } elseif ( ! $old ) {
+            $result = wp_schedule_single_event( $timestamp, BMA_US_CRON_HOOK, array(), true );
+        } else {
+            /*
+             * WordPress rejects an identical hook and argument set within ten
+             * minutes of an existing event. Remove every existing instance
+             * before scheduling the replacement, then restore the previous
+             * next run if WordPress cannot create the new event.
+             */
+            $removed = wp_clear_scheduled_hook( BMA_US_CRON_HOOK, array(), true );
             if ( is_wp_error( $removed ) || false === $removed ) {
-                wp_unschedule_event( $timestamp, BMA_US_CRON_HOOK, array(), true );
-                $result = new WP_Error( 'bma_schedule_replace', 'The previous event could not be removed. Review the schedule before retrying.' );
-                
+                $result = new WP_Error( 'bma_schedule_replace', 'The previous event could not be removed. The existing schedule was not changed.' );
+            } else {
+                $result = wp_schedule_single_event( $timestamp, BMA_US_CRON_HOOK, array(), true );
+                if ( is_wp_error( $result ) || false === $result ) {
+                    $replacement_error = $result;
+                    $restored = wp_schedule_single_event( $old, BMA_US_CRON_HOOK, array(), true );
+                    if ( is_wp_error( $restored ) || false === $restored ) {
+                        $result = new WP_Error( 'bma_schedule_restore', 'WordPress could not create the replacement event or restore the previous event. The saved scheduling settings were not changed.' );
+                    } else {
+                        $result = $replacement_error;
+                    }
+                }
             }
-            
         }
-        
- 
     }
     
  if ( is_wp_error( $result ) || false === $result ) {
@@ -810,17 +823,17 @@ function bma_us_render_backup_safety() {
 <?php if ( $backup['installed'] && $backup['active'] ) : ?>
 
 					<strong class="bma-backup-good-text">
-						● Active
+						â— Active
 					</strong>
 <?php elseif ( $backup['installed'] ) : ?>
 
 					<strong class="bma-backup-danger-text">
-						● Inactive
+						â— Inactive
 					</strong>
 <?php else : ?>
 
 					<strong class="bma-backup-neutral-text">
-						— Not Detected
+						â€” Not Detected
 					</strong>
 <?php endif;
     ?>
@@ -833,7 +846,7 @@ function bma_us_render_backup_safety() {
 <?php if ( $backup['history_detected'] ) : ?>
 
 					<strong class="bma-backup-good-text">
-● Detected
+â— Detected
 <?php
  if ( ! empty( $backup['backup_count'] ) ) {
         echo ' (' . esc_html( $backup['backup_count'] ) . ')';
@@ -845,7 +858,7 @@ function bma_us_render_backup_safety() {
 <?php else : ?>
 
 					<strong class="bma-backup-warning-text">
-						● Not Verified
+						â— Not Verified
 					</strong>
 <?php endif;
     ?>
@@ -880,7 +893,7 @@ function bma_us_render_backup_safety() {
         
     }
     else {
-        echo '—';
+        echo 'â€”';
         
     }
     ?>
@@ -945,12 +958,12 @@ function bma_us_render_backup_safety() {
     elseif ( ! empty( $component['verified'] ) ) : ?>
 
 								<span class="bma-component-ok">
-									✓
+									âœ“
 								</span>
 <?php else : ?>
 
 								<span class="bma-component-failed">
-									✕
+									âœ•
 								</span>
 <?php endif;
     ?>
@@ -2270,7 +2283,7 @@ Timezone:
 <?php else : ?>
 
 										<span class="bma-muted">
-											—
+											â€”
 										</span>
 <?php endif;
     ?>
@@ -2363,7 +2376,7 @@ Plugins
 										></span>
 <?php else : ?>
 
-										<span class="bma-muted">—</span>
+										<span class="bma-muted">â€”</span>
 <?php endif;
     ?>
 
@@ -2382,7 +2395,7 @@ Plugins
 <?php if ( $protected ) : ?>
 
 												<small class="bma-protected">
-													Protected — scheduler dependency
+													Protected â€” scheduler dependency
 												</small>
 <?php elseif ( ! empty( $plugin_data['AuthorName'] ) ) : ?>
 
@@ -2401,7 +2414,7 @@ by
 </td>
 <td>
 <?php
- echo esc_html( $plugin_data['Version'] ?? '—' );
+ echo esc_html( $plugin_data['Version'] ?? 'â€”' );
     ?>
 
 								</td>
@@ -2414,7 +2427,7 @@ by
 										</strong>
 <?php else : ?>
 
-										<span class="bma-muted">—</span>
+										<span class="bma-muted">â€”</span>
 <?php endif;
     ?>
 
@@ -2517,7 +2530,7 @@ Themes
 										>
 <?php else : ?>
 
-										<span class="bma-muted">—</span>
+										<span class="bma-muted">â€”</span>
 <?php endif;
     ?>
 
@@ -2560,7 +2573,7 @@ by
 										</strong>
 <?php else : ?>
 
-										<span class="bma-muted">—</span>
+										<span class="bma-muted">â€”</span>
 <?php endif;
     ?>
 
@@ -2642,12 +2655,12 @@ by
 <?php if ( $settings['enabled'] ) : ?>
 
 					<span class="bma-schedule-enabled">
-						● Schedule Active
+						â— Schedule Active
 					</span>
 <?php else : ?>
 
 					<span class="bma-schedule-disabled">
-						● Schedule Disabled
+						â— Schedule Disabled
 					</span>
 <?php endif;
     ?>
@@ -2831,7 +2844,7 @@ Timezone:
 							</strong>
 <br>
 <small>
-								Uses your WordPress timezone from Settings → General.
+								Uses your WordPress timezone from Settings â†’ General.
 							</small>
 </div>
 </div>
@@ -4265,9 +4278,9 @@ function bma_us_render_last_update_debug() {
         echo '<strong>Status:</strong> ' . esc_html( ucfirst( $status ) ) . '<br>';
         if ( ! empty( $detail['old_version'] ) || ! empty( $detail['new_version'] ) ) {
             echo '<strong>Version:</strong> ';
-            echo esc_html( ! empty( $detail['old_version'] ) ? $detail['old_version'] : '—' );
+            echo esc_html( ! empty( $detail['old_version'] ) ? $detail['old_version'] : 'â€”' );
             echo ' &rarr; ';
-            echo esc_html( ! empty( $detail['new_version'] ) ? $detail['new_version'] : '—' );
+            echo esc_html( ! empty( $detail['new_version'] ) ? $detail['new_version'] : 'â€”' );
             echo '<br>';
             
         }
@@ -4353,7 +4366,7 @@ function bma_us_render_update_history() {
         
     }
     else {
-        echo '—';
+        echo 'â€”';
         
     }
     ?>
@@ -4364,7 +4377,7 @@ function bma_us_render_update_history() {
 <small>Trigger</small>
 <strong>
 <?php
- echo esc_html( ucfirst( $last_run['trigger'] ?? '—' ) );
+ echo esc_html( ucfirst( $last_run['trigger'] ?? 'â€”' ) );
     ?>
 
 					</strong>
@@ -4477,14 +4490,14 @@ function bma_us_render_update_history() {
     $new = $record['new_version'] ?? '';
     if ( $old || $new ) {
         echo '<span class="bma-version-change">';
-        echo esc_html( $old ?: '—' );
+        echo esc_html( $old ?: 'â€”' );
         echo ' <span>&rarr;</span> ';
-        echo esc_html( $new ?: '—' );
+        echo esc_html( $new ?: 'â€”' );
         echo '</span>';
         
     }
     else {
-        echo '<span class="bma-muted">—</span>';
+        echo '<span class="bma-muted">â€”</span>';
         
     }
     ?>
@@ -4511,22 +4524,22 @@ Manual
 <?php if ( 'success' === $status ) : ?>
 
 	<span class="bma-history-status bma-history-success">
-		● Success
+		â— Success
 	</span>
 <?php elseif ( 'failed' === $status ) : ?>
 
 	<span class="bma-history-status bma-history-failed">
-		● Failed
+		â— Failed
 	</span>
 <?php elseif ( 'blocked' === $status ) : ?>
 
 	<span class="bma-history-status bma-history-blocked">
-		● Blocked
+		â— Blocked
 	</span>
 <?php else : ?>
 
 	<span class="bma-history-status bma-history-skipped">
-		● Skipped
+		â— Skipped
 	</span>
 <?php endif;
     ?>
@@ -4534,7 +4547,7 @@ Manual
 							</td>
 <td class="bma-history-message">
 <?php
- echo esc_html( $record['message'] ?? '—' );
+ echo esc_html( $record['message'] ?? 'â€”' );
     ?>
 
 							</td>
