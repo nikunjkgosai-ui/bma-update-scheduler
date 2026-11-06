@@ -18,7 +18,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ inputs.version || '1.0.14' }}
+      VERSION: ${{ inputs.version || '1.0.15' }}
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -70,15 +70,11 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "BMA Update Scheduler $VERSION" \
             --notes-file - <<'NOTES'
-          Fixes cron schedule replacement for small and large time adjustments.
+          Corrects dashboard icons and symbols that could display as corrupted text.
 
           ### Changes
 
-          - Removes existing matching cron events before creating a replacement, avoiding WordPress's ten-minute duplicate-event rejection.
-          - Leaves unchanged schedules untouched.
-          - Restores the previous event if WordPress rejects the replacement.
-          - Preserves saved scheduling settings when cron replacement fails.
-          - Clears matching stale events during successful replacement.
-          - Adds focused regression coverage for unchanged schedules, five-minute adjustments, larger changes, disabling schedules, and scheduling failures.
-          - Leaves backup protection, update locking, update execution, health checks, and reporting unchanged.
+          - Replaces fragile Unicode interface glyphs with encoding-safe HTML entities.
+          - Corrects check, cross, status-dot, dash, and navigation-arrow symbols.
+          - Keeps scheduling, backup protection, update locking, update execution, health checks, and reporting behavior unchanged.
           NOTES
