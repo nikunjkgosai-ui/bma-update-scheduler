@@ -3,7 +3,7 @@ Tags: updates, scheduled updates, backup, maintenance
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.13
+Stable tag: 1.0.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -84,6 +84,12 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 
 == Changelog ==
 
+= 1.0.14 =
+* Fixed schedule replacement for time adjustments within WordPress's ten-minute duplicate-event window.
+* Preserved the previous cron event when WordPress rejects a replacement event.
+* Cleared matching stale events during successful schedule replacement to prevent duplicates.
+* Added focused regression tests for unchanged, adjusted, disabled and failed schedules.
+
 = 1.0.13 =
 * Added compact dashboard shortcuts for Scheduled Updates, Manual Updates and Update History.
 * Made the dashboard summary cards accessible links with hover and keyboard-focus states.
@@ -160,6 +166,9 @@ A consistent MySQL/MariaDB connection supporting advisory locks, WordPress files
 * Initial standalone package of the BMA Update Scheduler snippet.
 
 == Upgrade Notice ==
+
+= 1.0.14 =
+Safely replaces scheduled cron events, including time changes smaller than ten minutes.
 
 = 1.0.13 =
 Compact dashboard navigation, clickable summary cards and reduced interface spacing.
