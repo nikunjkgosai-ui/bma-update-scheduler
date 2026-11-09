@@ -1,0 +1,53 @@
+name: PHP checks
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '*.php'
+      - 'includes/**/*.php'
+      - 'tests/**/*.php'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    paths:
+      - '*.php'
+      - 'includes/**/*.php'
+      - 'tests/**/*.php'
+      - '.github/workflows/ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: php-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php:
+          - '7.4'
+          - '8.4'
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Lint PHP
+        shell: bash
+        run: find . -type f -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+
+      - name: Run schedule regression tests
+        shell: bash
+        run: php tests/test-reschedule-event.php
+
