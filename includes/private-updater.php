@@ -12,6 +12,7 @@ final class BMA_US_Private_Updater {
  const API_ROOT = 'https://api.github.com/repos/nikunjkgosai-ui/bma-update-scheduler';
  const CACHE_KEY = 'bma_us_github_release_4';
  const CACHE_TTL = 21600;
+ const NOTICE_TTL = 120;
 
  public static function boot() {
   add_filter( 'update_plugins_github.com', array( __CLASS__, 'check_update' ), 10, 4 );
@@ -52,16 +53,20 @@ final class BMA_US_Private_Updater {
   if ( is_array( $release ) && version_compare( self::installed_version(), $release['version'], '<' ) ) {
    $status = 'available';
   }
+  self::store_notice( $status );
   $target = $network ? network_admin_url( 'plugins.php' ) : admin_url( 'plugins.php' );
-  wp_safe_redirect( add_query_arg( 'bma_us_update_check', $status, $target ) );
+  wp_safe_redirect( $target );
   exit;
  }
 
  public static function check_notice() {
-  if ( ! current_user_can( 'update_plugins' ) || empty( $_GET['bma_us_update_check'] ) || ! is_string( $_GET['bma_us_update_check'] ) ) {
+  if ( ! current_user_can( 'update_plugins' ) ) {
    return;
   }
-  $status = sanitize_key( wp_unslash( $_GET['bma_us_update_check'] ) );
+  $status = self::take_notice();
+  if ( '' === $status ) {
+   return;
+  }
   if ( 'available' === $status ) {
    echo '<div class="notice notice-success is-dismissible"><p><strong>BMA Update Scheduler:</strong> A newer version is available below.</p></div>';
   } elseif ( 'current' === $status ) {
@@ -124,6 +129,23 @@ final class BMA_US_Private_Updater {
    ),
    'icons'             => self::icons(),
   );
+ }
+
+ private static function notice_key() {
+  return self::CACHE_KEY . '_notice_' . get_current_user_id();
+ }
+
+ private static function store_notice( $status ) {
+  if ( in_array( $status, array( 'available', 'current', 'error' ), true ) ) {
+   set_site_transient( self::notice_key(), $status, self::NOTICE_TTL );
+  }
+ }
+
+ private static function take_notice() {
+  $key = self::notice_key();
+  $status = get_site_transient( $key );
+  delete_site_transient( $key );
+  return is_string( $status ) ? sanitize_key( $status ) : '';
  }
 
  private static function get_latest_release() {
