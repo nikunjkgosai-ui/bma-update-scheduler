@@ -3,7 +3,7 @@ Tags: updates, scheduled updates, backup, maintenance
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.15
+Stable tag: 1.0.16
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -83,6 +83,12 @@ BMA excludes itself and Code Snippets from BMA's scheduled update batches. WordP
 A consistent MySQL/MariaDB connection supporting advisory locks, WordPress filesystem access and active UpdraftPlus with a qualifying backup. WP-Cron needs traffic or a server cron trigger. Email delivery depends on the site's mail configuration.
 
 == Changelog ==
+
+= 1.0.16 =
+* Hardened manual GitHub update-check notices with short-lived, user-specific state.
+* Normalized scheduling regression-test line endings.
+* Production release packages exclude development-only tests.
+* Preserved scheduling, backup protection, locking, updates, health checks and reporting behavior.
 
 = 1.0.15 =
 * Replaced fragile Unicode interface glyphs with encoding-safe HTML entities.
