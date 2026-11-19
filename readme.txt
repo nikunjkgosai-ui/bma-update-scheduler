@@ -3,7 +3,7 @@ Tags: updates, scheduled updates, backup, maintenance
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.16
+Stable tag: 1.0.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -83,6 +83,13 @@ BMA excludes itself and Code Snippets from BMA's scheduled update batches. WordP
 A consistent MySQL/MariaDB connection supporting advisory locks, WordPress filesystem access and active UpdraftPlus with a qualifying backup. WP-Cron needs traffic or a server cron trigger. Email delivery depends on the site's mail configuration.
 
 == Changelog ==
+
+= 1.0.17 =
+* Added a visible Last Check status for manual and scheduled update checks.
+* Added the installed plugin version beside the dashboard timezone.
+* Scheduled checks with no eligible updates now report Up to Date without adding empty component-history rows.
+* Avoided misleading skipped core runs when WordPress core is already current.
+* Corrected release automation version handling and production-package exclusions.
 
 = 1.0.16 =
 * Hardened manual GitHub update-check notices with short-lived, user-specific state.

@@ -409,6 +409,7 @@ function bma_us_update_selected_now() {
 define( 'BMA_US_HISTORY_OPTION', 'bma_us_update_history' );
 define( 'BMA_US_HISTORY_LIMIT', 200 );
 define( 'BMA_US_LAST_RUN_OPTION', 'bma_us_last_run' );
+define( 'BMA_US_LAST_CHECK_OPTION', 'bma_us_last_update_check' );
 
 
 function bma_us_get_history() {
@@ -501,10 +502,42 @@ function bma_us_save_last_run( $results, $trigger = 'manual' ) {
 }
 
 
+function bma_us_save_last_check( $trigger, $status, $message, $results = array() ) {
+    $allowed_statuses = array( 'no_updates', 'updated', 'failed', 'blocked', 'checked' );
+    $status = sanitize_key( $status );
+    if ( ! in_array( $status, $allowed_statuses, true ) ) {
+        $status = 'checked';
+    }
+    $last_check = array(
+        'timestamp' => time(),
+        'trigger' => sanitize_key( $trigger ),
+        'status' => $status,
+        'message' => sanitize_text_field( $message ),
+        'success' => isset( $results['success'] ) ? absint( $results['success'] ) : 0,
+        'failed' => isset( $results['failed'] ) ? absint( $results['failed'] ) : 0,
+        'skipped' => isset( $results['skipped'] ) ? absint( $results['skipped'] ) : 0,
+        'blocked' => isset( $results['blocked'] ) ? absint( $results['blocked'] ) : 0,
+    );
+    update_option( BMA_US_LAST_CHECK_OPTION, $last_check, false );
+}
+
+
 function bma_us_process_update_reporting( $results, $trigger = 'manual' ) {
     update_option( BMA_US_RESULT_CONTEXT_OPTION, array( 'fingerprint' => md5( serialize( $results ) ), 'trigger' => $trigger, 'checked' => time(), ), false );
     bma_us_record_update_results( $results, $trigger );
     bma_us_save_last_run( $results, $trigger );
+    if ( ! empty( $results['blocked'] ) ) {
+        bma_us_save_last_check( $trigger, 'blocked', 'Updates were found, but the safety gate blocked the update run.', $results );
+    }
+    elseif ( ! empty( $results['failed'] ) ) {
+        bma_us_save_last_check( $trigger, 'failed', 'The update check completed, but one or more updates failed.', $results );
+    }
+    elseif ( ! empty( $results['success'] ) ) {
+        bma_us_save_last_check( $trigger, 'updated', 'The update check completed and available updates were installed.', $results );
+    }
+    else {
+        bma_us_save_last_check( $trigger, 'checked', 'The update check completed without installing an update.', $results );
+    }
     
 }
 define( 'BMA_US_MIN_FREE_SPACE', 100 * MB_IN_BYTES );
@@ -1931,8 +1964,20 @@ function bma_us_run_scheduled_updates() {
         }
         
     }
-    $core = ! empty( $settings['core'] );
+    $core = false;
+    if ( ! empty( $settings['core'] ) ) {
+        $core_updates = get_site_transient( 'update_core' );
+        if ( is_object( $core_updates ) && ! empty( $core_updates->updates ) ) {
+            foreach ( $core_updates->updates as $update ) {
+                if ( isset( $update->response ) && 'upgrade' === $update->response ) {
+                    $core = true;
+                    break;
+                }
+            }
+        }
+    }
     if ( ! $plugins && ! $themes && ! $core ) {
+        bma_us_save_last_check( 'scheduled', 'no_updates', 'Scheduled check completed. No eligible updates were available.' );
         return;
         
     }
@@ -2109,6 +2154,8 @@ function bma_us_render_dashboard() {
         $timezone = 'UTC';
         
     }
+    $plugin_headers = get_file_data( BMA_US_PLUGIN_FILE, array( 'version' => 'Version' ), 'plugin' );
+    $plugin_version = isset( $plugin_headers['version'] ) ? sanitize_text_field( $plugin_headers['version'] ) : '';
     $next_timestamp = wp_next_scheduled( BMA_US_CRON_HOOK );
     ?>
 
@@ -2121,6 +2168,11 @@ function bma_us_render_dashboard() {
 				</p>
 </div>
 <div class="bma-header-meta">
+<?php if ( $plugin_version ) : ?>
+Version:
+				<strong><?php echo esc_html( $plugin_version ); ?></strong>
+				<span class="bma-header-meta-separator" aria-hidden="true">|</span>
+<?php endif; ?>
 Timezone:
 				<strong>
 					<?php echo esc_html( $timezone );
@@ -3007,6 +3059,10 @@ Timezone:
     padding:10px 15px;
     
 }
+.bma-header-meta-separator {
+    color:#a7aaad;
+    margin:0 8px;
+}
 .bma-dashboard-top {
     display:grid;
     grid-template-columns:minmax(210px,.9fr) repeat(4,minmax(0,1fr));
@@ -3593,6 +3649,10 @@ Timezone:
     background:#f6f7f7;
     border-bottom:1px solid #dcdcde;
     
+}
+.bma-last-check-summary {
+    grid-template-columns:2fr 1fr 1fr 3fr;
+    border-bottom:1px solid #dcdcde;
 }
 .bma-last-run-summary > div {
     padding:15px 20px;
@@ -4310,6 +4370,7 @@ function bma_us_clear_history() {
 function bma_us_render_update_history() {
     $history = bma_us_get_history();
     $last_run = get_option( BMA_US_LAST_RUN_OPTION, array() );
+    $last_check = get_option( BMA_US_LAST_CHECK_OPTION, array() );
     ?>
 
 <div class="bma-section bma-history-section" id="bma-update-history">
@@ -4354,6 +4415,41 @@ function bma_us_render_update_history() {
     ?>
 
 		</div>
+<?php if ( ! empty( $last_check ) ) : ?>
+
+			<div class="bma-last-run-summary bma-last-check-summary">
+<div>
+<small>Last Check</small>
+<strong>
+<?php
+ if ( ! empty( $last_check['timestamp'] ) ) {
+        echo esc_html( wp_date( 'M j, Y \a\t g:i A', $last_check['timestamp'], wp_timezone() ) );
+    }
+    else {
+        echo '&mdash;';
+    }
+    ?>
+					</strong>
+</div>
+<div>
+<small>Trigger</small>
+<strong><?php echo esc_html( ucfirst( $last_check['trigger'] ?? '-' ) ); ?></strong>
+</div>
+<div>
+<small>Status</small>
+<strong class="<?php echo esc_attr( in_array( $last_check['status'] ?? '', array( 'failed', 'blocked' ), true ) ? 'bma-history-failed-text' : 'bma-history-success-text' ); ?>">
+<?php
+ $check_labels = array( 'no_updates' => 'Up to Date', 'updated' => 'Updates Installed', 'failed' => 'Failed', 'blocked' => 'Blocked', 'checked' => 'Checked' );
+    echo esc_html( $check_labels[ $last_check['status'] ?? '' ] ?? 'Checked' );
+    ?>
+					</strong>
+</div>
+<div>
+<small>Result</small>
+<strong><?php echo esc_html( $last_check['message'] ?? '-' ); ?></strong>
+</div>
+</div>
+<?php endif; ?>
 <?php if ( ! empty( $last_run ) ) : ?>
 
 			<div class="bma-last-run-summary">

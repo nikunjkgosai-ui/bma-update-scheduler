@@ -7,13 +7,13 @@ on:
       - '*.php'
       - 'includes/**/*.php'
       - 'tests/**/*.php'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/*.yml'
   pull_request:
     paths:
       - '*.php'
       - 'includes/**/*.php'
       - 'tests/**/*.php'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/*.yml'
 
 permissions:
   contents: read
@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -47,7 +47,11 @@ jobs:
         shell: bash
         run: find . -type f -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
 
-      - name: Run schedule regression tests
+      - name: Run regression tests
         shell: bash
-        run: php tests/test-reschedule-event.php
+        run: |
+          set -euo pipefail
+          for test_file in tests/test-*.php; do
+            php "$test_file"
+          done
 
