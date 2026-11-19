@@ -7,9 +7,6 @@ on:
         description: Release version without the v prefix
         required: true
         type: string
-  push:
-    paths:
-      - .github/workflows/release.yml
 
 permissions:
   contents: write
@@ -18,15 +15,16 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ inputs.version || '1.0.15' }}
+      VERSION: ${{ inputs.version }}
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Validate requested version
         shell: bash
         run: |
           set -euo pipefail
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           header_version="$(sed -n 's/^ \* Version: //p' bma-update-scheduler.php | head -n 1 | tr -d '\r')"
           stable_tag="$(sed -n 's/^Stable tag: //p' readme.txt | head -n 1 | tr -d '\r')"
           test "$VERSION" = "$header_version"
@@ -37,9 +35,13 @@ jobs:
         shell: bash
         run: find . -type f -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
 
-      - name: Run schedule regression tests
+      - name: Run regression tests
         shell: bash
-        run: php tests/test-reschedule-event.php
+        run: |
+          set -euo pipefail
+          for test_file in tests/test-*.php; do
+            php "$test_file"
+          done
 
       - name: Build installable ZIP
         shell: bash
@@ -49,7 +51,11 @@ jobs:
           rsync -a ./ build/bma-update-scheduler/ \
             --exclude '.git/' \
             --exclude '.github/' \
-            --exclude 'build/'
+            --exclude 'tests/' \
+            --exclude 'build/' \
+            --exclude 'release-build-*/' \
+            --exclude 'bma-update-scheduler-*.zip' \
+            --exclude 'RELEASE_PROCESS.md'
           (
             cd build
             zip -q -r "bma-update-scheduler-$VERSION.zip" bma-update-scheduler
@@ -69,12 +75,4 @@ jobs:
           gh release create "v$VERSION" "build/bma-update-scheduler-$VERSION.zip" \
             --target "$GITHUB_SHA" \
             --title "BMA Update Scheduler $VERSION" \
-            --notes-file - <<'NOTES'
-          Corrects dashboard icons and symbols that could display as corrupted text.
-
-          ### Changes
-
-          - Replaces fragile Unicode interface glyphs with encoding-safe HTML entities.
-          - Corrects check, cross, status-dot, dash, and navigation-arrow symbols.
-          - Keeps scheduling, backup protection, update locking, update execution, health checks, and reporting behavior unchanged.
-          NOTES
+            --generate-notes

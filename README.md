@@ -1,6 +1,6 @@
 # BMA Update Scheduler
 
-BMA Update Scheduler provides manual and scheduled WordPress plugin, theme, and core updates with an existing UpdraftPlus backup safety gate, update history, post-update health checks, locking, and optional email alerts.
+BMA Update Scheduler provides manual and scheduled WordPress plugin, theme, and core updates with an existing UpdraftPlus backup safety gate, update history, last-check status, post-update health checks, locking, and optional email alerts.
 
 The project is distributed publicly under GPLv2 or later. It supports update packages supplied by installed plugins and themes, including vendor-hosted premium updates. It is independently distributed through GitHub and is not a WordPress.org Plugin Directory release.
 
