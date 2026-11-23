@@ -3,7 +3,7 @@ Tags: updates, scheduled updates, backup, maintenance
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.17
+Stable tag: 1.0.27
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -14,15 +14,15 @@ Manage manual and scheduled updates with existing-backup checks, update history 
 BMA Update Scheduler manages installed plugin, theme and WordPress core updates using WordPress's native update APIs.
 
 * Manual and scheduled updates with individual component results.
-* An existing UpdraftPlus backup safety gate; BMA never creates a backup.
-* A configurable maximum backup age, defaulting to 30 days.
+* Selectable verified UpdraftPlus or externally managed server-backup protection; BMA never creates a backup.
+* Existing backups remain eligible regardless of age; age is shown for information only.
 * Backup component records and local archive readability/size checks.
 * Post-update health checks, history and optional email alerts.
 * Update locking, permission checks and protection for BMA and Code Snippets.
 
 All included functionality is available without a license key, subscription, paid unlock, trial period or usage quota. Backup and permission requirements are operational safety checks. The plugin does not automatically reactivate plugins or perform rollback.
 
-An active UpdraftPlus installation is required for the backup safety gate. Install and configure it separately; BMA does not install it or purchase services. UpdraftPlus Premium is not required. This plugin is not affiliated with or endorsed by UpdraftPlus.
+The default protection mode requires active UpdraftPlus and a qualifying backup. Administrators whose backups are managed by their host, server, or another external system can explicitly select External / Server Backup. BMA allows updates in that mode but does not claim to verify external backup freshness, completeness, availability, or restorability. UpdraftPlus Premium is not required. This plugin is not affiliated with or endorsed by UpdraftPlus.
 
 = Source and license =
 
@@ -53,18 +53,16 @@ Download production ZIP files from the public GitHub releases page. No WordPress
 1. Wait for any BMA update operation to finish.
 2. Disable only the old BMA Update Scheduler snippet. Keep Code Snippets active if other snippets need it.
 3. Upload the current bma-update-scheduler-version.zip through Plugins > Add New > Upload Plugin and activate.
-4. Open Tools > BMA Update Scheduler. Existing BMA settings and history are reused.
+4. Open Update Scheduler from the main WordPress admin sidebar. Existing BMA settings and history are reused.
 5. Review the backup gate, schedule and email, then Save Schedule as an authorized administrator.
 
 For multisite, disable conflicting BMA snippets on all affected sites before network activation. Settings and history are per site. New sites start with scheduling disabled. The update lock is shared for the installation's database/table prefix. Avoid concurrent schedules for shared plugins on multiple sites.
 
 == Frequently Asked Questions ==
 
-= How do I change the backup age? =
+= Does an older backup block updates? =
 
-Add this before the stop-editing line in wp-config.php; the value is seconds:
-
-define( 'BMA_US_MAX_BACKUP_AGE', 30 * 24 * 60 * 60 );
+No. Backup age is displayed for information but does not block an update. Verified UpdraftPlus mode still requires an existing successful backup with all expected components.
 
 = Are remote backups guaranteed to restore? =
 
@@ -80,9 +78,66 @@ BMA excludes itself and Code Snippets from BMA's scheduled update batches. WordP
 
 = What infrastructure is required? =
 
-A consistent MySQL/MariaDB connection supporting advisory locks, WordPress filesystem access and active UpdraftPlus with a qualifying backup. WP-Cron needs traffic or a server cron trigger. Email delivery depends on the site's mail configuration.
+A consistent MySQL/MariaDB connection supporting advisory locks and WordPress filesystem access. The default verified mode also requires active UpdraftPlus with a qualifying backup; External / Server Backup mode requires an administrator-confirmed independent backup strategy. WP-Cron needs traffic or a server cron trigger. Email delivery depends on the site's mail configuration.
 
 == Changelog ==
+
+= 1.0.27 =
+* Corrected the backup inspection UI so unfinished backups no longer appear fully verified.
+* Uses an amber warning state when UpdraftPlus has not recorded successful completion.
+* Labels detected component files as Archive found until the complete backup passes verification.
+* Keeps the existing safety gate and successful-backup requirements unchanged.
+
+= 1.0.26 =
+* Removed the maximum backup age setting and age-based update blocking.
+* Allows any existing successful and complete UpdraftPlus backup regardless of age.
+* Retained blocking for missing, unsuccessful, future-dated, or incomplete backups.
+* Updated dashboard guidance, documentation, and Site Manager reporting.
+
+= 1.0.25 =
+* Replaced the external-backup dashboard state with one compact summary.
+* Removed inapplicable history, timestamp, age, duplicate status, and UpdraftPlus-specific information from that state.
+* Kept the complete verification display unchanged for verified UpdraftPlus mode.
+
+= 1.0.24 =
+* Replaced the hard UpdraftPlus dependency with selectable backup-protection modes.
+* Retained verified UpdraftPlus protection as the safe default for existing installations.
+* Added an explicitly confirmed External / Server Backup mode for hosting and infrastructure backups BMA cannot inspect.
+* Reported external protection honestly without claiming backup freshness, completeness, or restorability verification.
+* Updated Site Manager monitoring so external protection is treated as configured rather than as a backup warning.
+
+= 1.0.23 =
+* Removed the background fill behind warning, danger, and neutral text in the Backup Safety statistic.
+* Retained warning colors and the existing status badge and explanatory safety-message styling.
+
+= 1.0.22 =
+* Corrected the Site Manager backup status so protection requires UpdraftPlus to be active.
+* Added backup-provider installation and activation state to the authenticated read-only response.
+* Allowed authenticated manual Site Manager refreshes to bypass the short status cache.
+* Preserved automatic polling cache behavior and all update, backup-gate, locking, and reporting logic.
+
+= 1.0.21 =
+* Moved the scheduler to a top-level admin menu directly below Dashboard.
+* Shortened only the sidebar label to Update Scheduler while retaining the full plugin name elsewhere.
+* Corrected direct-access and read-only notice-analysis warnings.
+* Removed a development-only hidden file from the production package.
+* Preserved the secure private GitHub updater used by this independently distributed edition.
+
+= 1.0.20 =
+* Adds staged Site Manager credential rotation without interrupting the active connection.
+* Accepts the current and staged credentials only during the verification window.
+* Reports the read-only agent API version for connection diagnostics.
+
+= 1.0.19 =
+* Expanded the authenticated read-only Site Manager response with pending update names and versions, backup component verification, recent update history, and detailed post-update health checks.
+* Kept the connection bounded and read-only; no update, backup, schedule, credential, or user-management actions were added.
+
+= 1.0.18 =
+* Added an opt-in, read-only BMA Site Manager connection.
+* Added encrypted shared-secret storage and one-time credential display.
+* Added timestamped, nonce-protected HMAC authentication and rate limiting.
+* Added a read-only REST status endpoint for updates, backups, schedules, health and last-check data.
+* Preserved update execution, backup protection, locking, scheduling, health checks and reporting behavior.
 
 = 1.0.17 =
 * Added a visible Last Check status for manual and scheduled update checks.

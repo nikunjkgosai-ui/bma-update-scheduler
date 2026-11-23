@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BMA Update Scheduler
  * Description: Manual and scheduled WordPress updates with an existing-backup safety gate, history, health checks and email alerts.
- * Version: 1.0.17
+ * Version: 1.0.27
  * Requires at least: 6.3
  * Requires PHP: 7.4
  * Author: Branding Marketing Agency
@@ -57,6 +57,7 @@ final class BMA_US_Plugin {
   }
   define( 'BMA_US_PLUGIN_LOADING', true );
   require_once __DIR__ . '/includes/scheduler.php';
+  require_once __DIR__ . '/includes/site-manager-connection.php';
   self::$loaded = true;
   // The engine's original init hook has already passed in this bootstrap.
   bma_us_remove_legacy_backup_jobs();
@@ -76,7 +77,8 @@ final class BMA_US_Plugin {
 
  public static function links( $links ) {
   if ( current_user_can( 'update_core' ) ) {
-   array_unshift( $links, '<a href="' . esc_url( admin_url( 'tools.php?page=bma-update-scheduler' ) ) . '">Settings</a>' );
+   array_unshift( $links, '<a href="' . esc_url( admin_url( 'admin.php?page=bma-update-scheduler' ) ) . '">Settings</a>' );
+   $links[] = '<a href="' . esc_url( admin_url( 'tools.php?page=bma-us-site-manager-connection' ) ) . '">Site Manager Connection</a>';
   }
   if ( current_user_can( 'update_plugins' ) ) {
    $links[] = '<a href="' . esc_url( BMA_US_Private_Updater::check_now_url() ) . '">Check for updates</a>';
@@ -100,7 +102,7 @@ final class BMA_US_Plugin {
   // Reuse existing events and the previously authorized scheduler owner.
   if ( ! empty( $settings['enabled'] ) && ! wp_next_scheduled( BMA_US_CRON_HOOK ) ) {
    if ( ! bma_us_reschedule_event( $settings ) ) {
-    update_option( 'bma_us_plugin_lifecycle_error', 'Activation completed, but the scheduled event could not be restored. Open Tools > BMA Update Scheduler and save the schedule again.', false );
+    update_option( 'bma_us_plugin_lifecycle_error', 'Activation completed, but the scheduled event could not be restored. Open Update Scheduler and save the schedule again.', false );
    }
   }
  }
