@@ -1,6 +1,8 @@
 # BMA Update Scheduler
 
-BMA Update Scheduler provides manual and scheduled WordPress plugin, theme, and core updates with an existing UpdraftPlus backup safety gate, update history, last-check status, post-update health checks, locking, and optional email alerts.
+BMA Update Scheduler provides manual and scheduled WordPress plugin, theme, and core updates with selectable verified UpdraftPlus or external/server backup protection, update history, last-check status, post-update health checks, locking, and optional email alerts.
+
+Version 1.0.18 also provides an opt-in, authenticated, read-only status endpoint for BMA Site Manager. The connection cannot execute updates or change scheduler settings.
 
 The project is distributed publicly under GPLv2 or later. It supports update packages supplied by installed plugins and themes, including vendor-hosted premium updates. It is independently distributed through GitHub and is not a WordPress.org Plugin Directory release.
 
@@ -9,14 +11,14 @@ The project is distributed publicly under GPLv2 or later. It supports update pac
 - WordPress 6.3 or newer
 - PHP 7.4 or newer
 - MySQL or MariaDB advisory-lock support
-- An active UpdraftPlus installation with a qualifying existing backup
+- Either active UpdraftPlus with a qualifying backup, or an independently managed external/server backup selected by an administrator
 
 ## Installation
 
 1. Download or package the `bma-update-scheduler` directory as a ZIP archive.
 2. In WordPress, open **Plugins > Add New > Upload Plugin**.
 3. Upload and activate the plugin.
-4. Open **Tools > BMA Update Scheduler**.
+4. Open **Update Scheduler** from the main WordPress admin sidebar.
 5. Review the backup gate and click **Save Schedule** with an authorized administrator account.
 
 If migrating from the Code Snippets version, disable the old BMA scheduler snippet before activating this plugin. Existing settings and update history use the same WordPress option names and are retained.
@@ -31,7 +33,7 @@ Please report suspected vulnerabilities privately as described in [SECURITY.md](
 
 ## Backup policy
 
-BMA does not create backups. Before manual or scheduled updates, it requires active UpdraftPlus and checks the latest existing backup for successful completion, acceptable age, and expected components. The default maximum age is 30 days.
+BMA does not create backups. Its default mode requires active UpdraftPlus and checks the latest existing backup for successful completion, acceptable age, and expected components. Administrators using hosting or server-level backups can explicitly select External / Server Backup; BMA then allows updates without claiming that it verified the external backup.
 
 Remote backup availability and restorability still require independent restore testing.
 

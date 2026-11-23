@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 final class BMA_US_Private_Updater {
  const UPDATE_URI = 'https://github.com/nikunjkgosai-ui/bma-update-scheduler';
  const API_ROOT = 'https://api.github.com/repos/nikunjkgosai-ui/bma-update-scheduler';
- const CACHE_KEY = 'bma_us_github_release_4';
+ const CACHE_KEY = 'bma_us_github_release_13';
  const CACHE_TTL = 21600;
  const NOTICE_TTL = 120;
 

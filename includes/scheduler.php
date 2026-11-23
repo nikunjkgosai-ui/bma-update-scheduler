@@ -28,15 +28,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'BMA_US_OPTION', 'bma_us_settings' );
 define( 'BMA_US_CRON_HOOK', 'bma_us_scheduled_update_event' );
 define( 'BMA_US_LOCK', 'bma_us_update_lock' );
-if ( ! defined( 'BMA_US_MAX_BACKUP_AGE' ) ) {
-    define( 'BMA_US_MAX_BACKUP_AGE', 30 * DAY_IN_SECONDS );
-    
-}
 add_action( 'admin_menu', 'bma_us_add_admin_menu' );
 
 
 function bma_us_add_admin_menu() {
-    add_management_page( 'BMA Update Scheduler', 'BMA Update Scheduler', 'update_core', 'bma-update-scheduler', 'bma_us_render_dashboard' );
+    add_menu_page( 'BMA Update Scheduler', 'Update Scheduler', 'update_core', 'bma-update-scheduler', 'bma_us_render_dashboard', 'dashicons-update', 3.1 );
     
 }
 
@@ -61,7 +57,7 @@ function bma_us_refresh_updates() {
 
 
 function bma_us_get_settings() {
-    $defaults = array( 'enabled' => 0, 'plugins' => 1, 'themes' => 1, 'core' => 0, 'frequency' => 'weekly', 'weekdays' => array( 'monday' ), 'month_day' => '1', 'day' => 'sunday', 'time' => '02:00', 'selected_plugins' => array(), 'selected_themes' => array(), 'notification_email' => '', );
+    $defaults = array( 'enabled' => 0, 'plugins' => 1, 'themes' => 1, 'core' => 0, 'frequency' => 'weekly', 'weekdays' => array( 'monday' ), 'month_day' => '1', 'day' => 'sunday', 'time' => '02:00', 'selected_plugins' => array(), 'selected_themes' => array(), 'notification_email' => '', 'backup_mode' => 'updraft', );
     $saved = get_option( BMA_US_OPTION, array() );
     return wp_parse_args( $saved, $defaults );
     
@@ -284,6 +280,14 @@ function bma_us_save_schedule() {
         
     }
     $notification_email = sanitize_email( $email_input );
+    $backup_mode = isset( $_POST['backup_mode'] ) && is_string( $_POST['backup_mode'] ) ? sanitize_key( wp_unslash( $_POST['backup_mode'] ) ) : 'updraft';
+    if ( ! in_array( $backup_mode, array( 'updraft', 'external' ), true ) ) {
+        $backup_mode = 'updraft';
+    }
+    $external_backup_confirmed = isset( $_POST['external_backup_confirmed'] ) && is_scalar( $_POST['external_backup_confirmed'] ) && '1' === sanitize_key( wp_unslash( $_POST['external_backup_confirmed'] ) );
+    if ( 'external' === $backup_mode && ! $external_backup_confirmed ) {
+        wp_die( 'Confirm that this website is protected by an independently managed server or hosting backup before selecting External / Server Backup.' );
+    }
     $frequency = isset( $_POST['frequency'] ) && is_string( $_POST['frequency'] ) ? sanitize_key( wp_unslash( $_POST['frequency'] ) ) : 'weekly';
     if ( ! in_array( $frequency, array( 'daily', 'weekly', 'weekdays', 'monthly' ), true ) ) {
         $frequency = 'weekly';
@@ -341,13 +345,13 @@ function bma_us_save_schedule() {
         }
         
     }
-    $settings = array( 'scheduled_by' => get_current_user_id(), 'notification_email' => $notification_email, 'enabled' => isset( $_POST['enabled'] ) ? 1 : 0, 'plugins' => isset( $_POST['plugins'] ) ? 1 : 0, 'themes' => isset( $_POST['themes'] ) ? 1 : 0, 'core' => isset( $_POST['core'] ) ? 1 : 0, 'frequency' => $frequency, 'weekdays' => $weekdays, 'month_day' => $month_day, 'day' => $day, 'time' => $time, 'selected_plugins' => array_values( array_unique( $selected_plugins ) ), 'selected_themes' => array_values( array_unique( $selected_themes ) ), );
+    $settings = array( 'scheduled_by' => get_current_user_id(), 'notification_email' => $notification_email, 'backup_mode' => $backup_mode, 'enabled' => isset( $_POST['enabled'] ) ? 1 : 0, 'plugins' => isset( $_POST['plugins'] ) ? 1 : 0, 'themes' => isset( $_POST['themes'] ) ? 1 : 0, 'core' => isset( $_POST['core'] ) ? 1 : 0, 'frequency' => $frequency, 'weekdays' => $weekdays, 'month_day' => $month_day, 'day' => $day, 'time' => $time, 'selected_plugins' => array_values( array_unique( $selected_plugins ) ), 'selected_themes' => array_values( array_unique( $selected_themes ) ), );
     $saved_schedule = bma_us_reschedule_event( $settings );
     if ( $saved_schedule ) {
         update_option( BMA_US_OPTION, $settings, false );
         
     }
-    bma_us_notice_redirect( add_query_arg( 'bma_notice', $saved_schedule ? 'schedule_saved' : 'schedule_error', admin_url( 'tools.php?page=bma-update-scheduler' ) ) );
+    bma_us_notice_redirect( add_query_arg( 'bma_notice', $saved_schedule ? 'schedule_saved' : 'schedule_error', admin_url( 'admin.php?page=bma-update-scheduler' ) ) );
     exit;
     
 }
@@ -397,12 +401,12 @@ function bma_us_update_selected_now() {
     $themes = array_values( array_unique( $themes ) );
     $update_core = isset( $_POST['update_core'] ) && is_scalar( $_POST['update_core'] ) && '1' === sanitize_key( wp_unslash( $_POST['update_core'] ) );
     if ( empty( $plugins ) && empty( $themes ) && ! $update_core ) {
-        bma_us_notice_redirect( add_query_arg( 'bma_notice', 'nothing_selected', admin_url( 'tools.php?page=bma-update-scheduler' ) ) );
+        bma_us_notice_redirect( add_query_arg( 'bma_notice', 'nothing_selected', admin_url( 'admin.php?page=bma-update-scheduler' ) ) );
         exit;
         
     }
     $results = bma_us_execute_guarded_updates( $plugins, $themes, $update_core, 'manual' );
-    bma_us_notice_redirect( add_query_arg( array( 'bma_notice' => ! empty( $results['blocked'] ) ? 'updates_blocked' : 'updates_finished', 'bma_blocked' => $results['blocked'] ?? 0, 'bma_ok' => $results['success'] ?? 0, 'bma_failed' => $results['failed'] ?? 0, 'bma_skipped' => $results['skipped'] ?? 0, ), admin_url( 'tools.php?page=bma-update-scheduler' ) ) );
+    bma_us_notice_redirect( add_query_arg( array( 'bma_notice' => ! empty( $results['blocked'] ) ? 'updates_blocked' : 'updates_finished', 'bma_blocked' => $results['blocked'] ?? 0, 'bma_ok' => $results['success'] ?? 0, 'bma_failed' => $results['failed'] ?? 0, 'bma_skipped' => $results['skipped'] ?? 0, ), admin_url( 'admin.php?page=bma-update-scheduler' ) ) );
     exit;
     
 }
@@ -766,7 +770,7 @@ function bma_us_detect_backup_system() {
         else {
             $verification = bma_us_verify_updraft_backup();
             $result['verification'] = $verification;
-            $result['status'] = $verification['passed'] ? 'protected' : ( $verification['age'] > BMA_US_MAX_BACKUP_AGE ? 'stale' : 'unverified' );
+            $result['status'] = $verification['passed'] ? 'protected' : 'unverified';
             $result['status_label'] = $verification['passed'] ? 'Protected' : 'Backup Gate Blocked';
             $result['message'] = $verification['message'];
             
@@ -777,6 +781,27 @@ function bma_us_detect_backup_system() {
     $result['message'] = 'No supported backup plugin was detected.';
     return $result;
     
+}
+
+function bma_us_get_backup_protection_status() {
+    $settings = bma_us_get_settings();
+    if ( 'external' === ( $settings['backup_mode'] ?? 'updraft' ) ) {
+        return array(
+            'provider'         => 'external',
+            'provider_name'    => 'External / Server Backup',
+            'installed'        => false,
+            'active'           => false,
+            'history_detected' => false,
+            'latest_backup'    => 0,
+            'backup_age'       => 0,
+            'backup_count'     => 0,
+            'status'           => 'external',
+            'status_label'     => 'External Backup',
+            'message'          => 'Updates are allowed because an administrator confirmed that backups are managed outside WordPress. BMA cannot verify backup freshness, completeness, or restorability in this mode.',
+            'verification'     => array(),
+        );
+    }
+    return bma_us_detect_backup_system();
 }
 
 
@@ -803,11 +828,13 @@ function bma_us_format_backup_age( $seconds ) {
 
 
 function bma_us_render_backup_safety() {
-    $backup = bma_us_detect_backup_system();
+    $backup = bma_us_get_backup_protection_status();
     $verification = $backup['verification'] ?? array();
     $status_class = 'bma-backup-neutral';
     switch ( $backup['status'] ) {
         case 'protected': $status_class = 'bma-backup-good';
+        break;
+        case 'external': $status_class = 'bma-backup-neutral';
         break;
         case 'stale': case 'inactive': case 'unverified': $status_class = 'bma-backup-warning';
         break;
@@ -837,6 +864,16 @@ function bma_us_render_backup_safety() {
 
 			</span>
 </div>
+<?php if ( 'external' === $backup['provider'] ) : ?>
+<div class="bma-external-backup-summary">
+<span class="dashicons dashicons-shield-alt" aria-hidden="true"></span>
+<div>
+<strong>External / Server Backup</strong>
+<p>Managed outside WordPress. BMA allows updates but does not verify this backup.</p>
+</div>
+</div>
+</div>
+<?php return; endif; ?>
 <div class="bma-backup-safety-grid">
 <div class="bma-backup-stat">
 <small>
@@ -851,9 +888,14 @@ function bma_us_render_backup_safety() {
 </div>
 <div class="bma-backup-stat">
 <small>
-					Plugin Status
+					Provider Status
 				</small>
-<?php if ( $backup['installed'] && $backup['active'] ) : ?>
+<?php if ( 'external' === $backup['provider'] ) : ?>
+
+					<strong class="bma-backup-neutral-text">
+						Managed externally
+					</strong>
+<?php elseif ( $backup['installed'] && $backup['active'] ) : ?>
 
 					<strong class="bma-backup-good-text">
 						&#9679; Active
@@ -876,7 +918,12 @@ function bma_us_render_backup_safety() {
 <small>
 					Backup History
 				</small>
-<?php if ( $backup['history_detected'] ) : ?>
+<?php if ( 'external' === $backup['provider'] ) : ?>
+
+					<strong class="bma-backup-neutral-text">
+						Not available to BMA
+					</strong>
+<?php elseif ( $backup['history_detected'] ) : ?>
 
 					<strong class="bma-backup-good-text">
 &#9679; Detected
@@ -903,7 +950,11 @@ function bma_us_render_backup_safety() {
 				</small>
 <strong>
 <?php
- if ( ! empty( $backup['latest_backup'] ) ) {
+ if ( 'external' === $backup['provider'] ) {
+        echo 'Managed externally';
+
+    }
+    elseif ( ! empty( $backup['latest_backup'] ) ) {
         echo esc_html( wp_date( 'M j, Y \a\t g:i A', $backup['latest_backup'], wp_timezone() ) );
         
     }
@@ -921,7 +972,11 @@ function bma_us_render_backup_safety() {
 				</small>
 <strong>
 <?php
- if ( ! empty( $backup['latest_backup'] ) ) {
+ if ( 'external' === $backup['provider'] ) {
+        echo '&mdash;';
+
+    }
+    elseif ( ! empty( $backup['latest_backup'] ) ) {
         echo esc_html( bma_us_format_backup_age( $backup['backup_age'] ) );
         
     }
@@ -965,14 +1020,15 @@ function bma_us_render_backup_safety() {
 </div>
 </div>
 <?php
- if ( ! empty( $verification ) && ! empty( $verification['components'] ) ) : ?>
+ if ( ! empty( $verification ) && ! empty( $verification['components'] ) ) :
+    $verification_passed = ! empty( $verification['passed'] ); ?>
 
-			<div class="bma-backup-verification">
+			<div class="bma-backup-verification <?php echo $verification_passed ? 'is-verified' : 'is-blocked'; ?>">
 <div class="bma-backup-verification-header">
-<span class="dashicons dashicons-yes-alt"></span>
+<span class="dashicons dashicons-<?php echo $verification_passed ? 'yes-alt' : 'warning'; ?>"></span>
 <div>
 <strong>
-							Latest Existing Backup Verification
+							<?php echo $verification_passed ? 'Latest Existing Backup Verification' : 'Latest Backup Inspection'; ?>
 						</strong>
 <p>
 							<?php
@@ -990,7 +1046,7 @@ function bma_us_render_backup_safety() {
  if ( isset( $component['expected'] ) && ! $component['expected'] ) : echo '<span class="bma-muted">Not expected</span>';
     elseif ( ! empty( $component['verified'] ) ) : ?>
 
-								<span class="bma-component-ok">
+								<span class="<?php echo $verification_passed ? 'bma-component-ok' : 'bma-component-found'; ?>">
 									&#10003;
 								</span>
 <?php else : ?>
@@ -1006,6 +1062,9 @@ function bma_us_render_backup_safety() {
  echo esc_html( $component['label'] );
     ?>
 							</strong>
+<?php if ( ! empty( $component['expected'] ) ) : ?>
+<small><?php echo ! empty( $component['verified'] ) ? ( $verification_passed ? 'Verified' : 'Archive found' ) : 'Missing'; ?></small>
+<?php endif; ?>
 </div>
 <?php endforeach;
     ?>
@@ -1022,8 +1081,7 @@ function bma_us_render_backup_safety() {
 			Existing-backup safety gate enabled
 		</strong>
 <p>
-			BMA checks existing UpdraftPlus backups before manual and scheduled updates. Maximum age: <?php echo esc_html( bma_us_format_backup_age( BMA_US_MAX_BACKUP_AGE ) );
-    ?>. BMA does not create backups.
+			BMA requires an existing successful and complete UpdraftPlus backup before manual and scheduled updates. Backup age does not block updates. BMA does not create backups.
 		</p>
 </div>
 </div>
@@ -1204,7 +1262,7 @@ function bma_us_get_updraft_option( $name, $default = false ) {
 
 
 function bma_us_verify_updraft_backup() {
-    $result = array( 'passed' => false, 'timestamp' => 0, 'age' => null, 'max_age' => BMA_US_MAX_BACKUP_AGE, 'successful' => false, 'components' => array(), 'missing' => array(), 'message' => '' );
+    $result = array( 'passed' => false, 'timestamp' => 0, 'age' => null, 'successful' => false, 'components' => array(), 'missing' => array(), 'message' => '' );
     $latest = bma_us_get_latest_updraft_backup_set();
     if ( ! $latest ) {
         $result['message'] = 'No existing UpdraftPlus backup could be verified.';
@@ -1217,10 +1275,6 @@ function bma_us_verify_updraft_backup() {
     $reasons = array();
     if ( $result['age'] < 0 ) {
         $reasons[] = 'The latest backup timestamp is in the future and cannot be trusted.';
-        
-    }
-    elseif ( $result['age'] > BMA_US_MAX_BACKUP_AGE ) {
-        $reasons[] = sprintf( 'The latest backup is %s old; the maximum allowed age is %s.', bma_us_format_backup_age( $result['age'] ), bma_us_format_backup_age( BMA_US_MAX_BACKUP_AGE ) );
         
     }
     $last = bma_us_get_updraft_option( 'updraft_last_backup', array() );
@@ -1250,13 +1304,21 @@ function bma_us_verify_updraft_backup() {
         
     }
     $result['passed'] = ! $reasons;
-    $result['message'] = $reasons ? implode( ' ', $reasons ) : 'The latest backup has a matching successful completion record, is within the allowed age, and lists valid expected archive components. Local archives are checked for readability and size; remote archives rely on UpdraftPlus records. Restorability is not verified.';
+    $result['message'] = $reasons ? implode( ' ', $reasons ) : 'The latest backup has a matching successful completion record and lists valid expected archive components. Backup age is informational and does not block updates. Local archives are checked for readability and size; remote archives rely on UpdraftPlus records. Restorability is not verified.';
     return $result;
     
 }
 
 
 function bma_us_check_existing_backup() {
+    $settings = bma_us_get_settings();
+    if ( 'external' === ( $settings['backup_mode'] ?? 'updraft' ) ) {
+        return array(
+            'passed'   => true,
+            'blockers' => array(),
+            'warnings' => array( 'Backup verification is delegated to the configured external or server-level backup system.' ),
+        );
+    }
     $backup = bma_us_detect_backup_system();
     if ( 'updraftplus' !== $backup['provider'] || empty( $backup['active'] ) ) {
         $verification = array( 'passed' => false, 'components' => array(), 'message' => 'An active UpdraftPlus installation is required before updates.' );
@@ -1442,7 +1504,7 @@ function bma_us_send_update_alert( $results, $trigger, $health = null ) {
         
     }
     $lines[] = '';
-    $lines[] = 'Review: ' . admin_url( 'tools.php?page=bma-update-scheduler' );
+    $lines[] = 'Review: ' . admin_url( 'admin.php?page=bma-update-scheduler' );
     $lines[] = 'No automatic rollback or activation repair was performed.';
     $accepted = false;
     try {
@@ -2980,6 +3042,22 @@ Timezone:
 </div>
 </div>
 </div>
+<div class="bma-backup-mode-settings">
+<h3>Backup Protection</h3>
+<p>Choose how BMA confirms that updates are covered by a backup strategy.</p>
+<label class="bma-backup-mode-option">
+<input type="radio" name="backup_mode" value="updraft" <?php checked( $settings['backup_mode'], 'updraft' ); ?>>
+<span><strong>Verified UpdraftPlus backup</strong><small>Require active UpdraftPlus and a recent, complete backup before manual or scheduled updates.</small></span>
+</label>
+<label class="bma-backup-mode-option">
+<input type="radio" name="backup_mode" value="external" <?php checked( $settings['backup_mode'], 'external' ); ?>>
+<span><strong>External / Server Backup</strong><small>Allow updates when backups are managed by the hosting provider, server, or another system that BMA cannot inspect.</small></span>
+</label>
+<label class="bma-external-backup-confirmation">
+<input type="checkbox" name="external_backup_confirmed" value="1" <?php checked( $settings['backup_mode'], 'external' ); ?>>
+<span>I confirm that this website has an independently managed backup and understand that BMA cannot verify its freshness, completeness, or restorability.</span>
+</label>
+</div>
 <div class="bma-field bma-notification-settings">
 					<label for="bma-notification-email"><strong>Notification Email</strong></label>
 					<input type="email" id="bma-notification-email" name="notification_email"
@@ -3557,6 +3635,55 @@ Timezone:
     margin:0;
     
 }
+.bma-backup-mode-settings {
+    margin:0 26px 20px;
+    padding:20px;
+    border:1px solid #e2e8f0;
+    border-radius:14px;
+    background:#fff;
+    box-shadow:0 4px 16px rgba(15,23,42,.035);
+}
+.bma-backup-mode-settings h3 {
+    margin:0 0 5px;
+}
+.bma-backup-mode-settings > p {
+    margin:0 0 14px;
+    color:#646970;
+}
+.bma-backup-mode-option {
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:12px;
+    border:1px solid #e2e8f0;
+    border-radius:9px;
+    margin-top:9px;
+}
+.bma-backup-mode-option input {
+    margin-top:3px;
+}
+.bma-backup-mode-option strong,
+.bma-backup-mode-option small {
+    display:block;
+}
+.bma-backup-mode-option small {
+    margin-top:3px;
+    color:#646970;
+    line-height:1.45;
+}
+.bma-external-backup-confirmation {
+    display:flex;
+    align-items:flex-start;
+    gap:9px;
+    margin-top:12px;
+    padding:11px 12px;
+    border-left:3px solid #2271b1;
+    background:#f0f6fc;
+    color:#3c434a;
+}
+.bma-external-backup-confirmation input {
+    margin-top:2px;
+}
 .bma-update-scheduler .bma-notification-settings {
     margin:0 26px 24px;
     padding:20px;
@@ -3819,6 +3946,28 @@ Timezone:
     border-bottom:1px solid #dcdcde;
     
 }
+.bma-external-backup-summary {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:14px 20px;
+    color:#135e96;
+    background:#f0f6fc;
+}
+.bma-external-backup-summary > .dashicons {
+    flex:0 0 22px;
+    width:22px;
+    height:22px;
+    font-size:22px;
+}
+.bma-external-backup-summary strong {
+    display:block;
+    margin-bottom:2px;
+}
+.bma-external-backup-summary p {
+    margin:0;
+    color:#50575e;
+}
 .bma-backup-stat {
     padding:18px 20px;
     border-right:1px solid #e2e4e7;
@@ -3850,6 +3999,12 @@ Timezone:
 .bma-backup-stat .bma-backup-good {
     background:transparent;
     
+}
+.bma-backup-stat .bma-backup-warning,
+.bma-backup-stat .bma-backup-danger,
+.bma-backup-stat .bma-backup-neutral {
+    background:transparent;
+
 }
 .bma-backup-warning {
     background:#fff8e5;
@@ -3958,6 +4113,13 @@ Timezone:
     height:22px;
     
 }
+.bma-backup-verification.is-blocked {
+    border-color:#dba617;
+    background:#fff8e5;
+}
+.bma-backup-verification.is-blocked .bma-backup-verification-header .dashicons {
+    color:#996800;
+}
 .bma-backup-verification-header strong {
     display:block;
     margin-bottom:3px;
@@ -3981,6 +4143,11 @@ Timezone:
     padding:10px 12px;
     
 }
+.bma-backup-component small {
+    display:block;
+    margin:3px 0 0 20px;
+    color:#646970;
+}
 .bma-component-ok {
     color:#00a32a;
     font-weight:700;
@@ -3992,6 +4159,11 @@ Timezone:
     font-weight:700;
     margin-right:5px;
     
+}
+.bma-component-found {
+    color:#996800;
+    font-weight:700;
+    margin-right:5px;
 }
 @media(max-width:1000px) {
     .bma-backup-components {
@@ -4361,7 +4533,7 @@ function bma_us_clear_history() {
     }
     check_admin_referer( 'bma_us_clear_history' );
     delete_option( BMA_US_HISTORY_OPTION );
-    bma_us_notice_redirect( add_query_arg( 'bma_notice', 'history_cleared', admin_url( 'tools.php?page=bma-update-scheduler' ) ) );
+    bma_us_notice_redirect( add_query_arg( 'bma_notice', 'history_cleared', admin_url( 'admin.php?page=bma-update-scheduler' ) ) );
     exit;
     
 }
