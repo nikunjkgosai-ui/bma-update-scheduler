@@ -171,16 +171,15 @@ final class BMA_US_Site_Manager_Connection {
 
 		$cache_key = 'bma_us_sm_status_' . get_current_blog_id();
 		$force     = '1' === $request->get_header( 'x-bma-refresh' );
-		if ( ! $force ) {
-			$cached = get_transient( $cache_key );
-			if ( is_array( $cached ) ) {
-				return rest_ensure_response( $cached );
-			}
+		$data      = $force ? false : get_transient( $cache_key );
+		if ( ! is_array( $data ) ) {
+			$data = self::build_status();
+			set_transient( $cache_key, $data, self::CACHE_TTL );
 		}
 
-		$data = self::build_status();
-		set_transient( $cache_key, $data, self::CACHE_TTL );
-		return rest_ensure_response( $data );
+		$response = rest_ensure_response( $data );
+		$response->header( 'Cache-Control', 'private, no-store' );
+		return $response;
 	}
 
 	private static function build_status() {
