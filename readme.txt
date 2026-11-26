@@ -3,7 +3,7 @@ Tags: updates, scheduled updates, backup, maintenance
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.28
+Stable tag: 1.0.29
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -81,6 +81,9 @@ BMA excludes itself and Code Snippets from BMA's scheduled update batches. WordP
 A consistent MySQL/MariaDB connection supporting advisory locks and WordPress filesystem access. The default verified mode also requires active UpdraftPlus with a qualifying backup; External / Server Backup mode requires an administrator-confirmed independent backup strategy. WP-Cron needs traffic or a server cron trigger. Email delivery depends on the site's mail configuration.
 
 == Changelog ==
+
+= 1.0.29 =
+* Reports WordPress update-data freshness and check times to Site Manager.
 
 = 1.0.28 =
 * Prevent shared HTTP caches from storing fresh or cached Site Manager status responses.

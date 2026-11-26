@@ -22,6 +22,7 @@ final class BMA_US_Site_Manager_Connection {
 	const MAX_SKEW     = 300;
 	const RATE_LIMIT   = 30;
 	const CACHE_TTL    = 60;
+	const UPDATE_MAX_AGE = 86400;
 	const SECRET_PREFIX = 'bmaus1:';
 
 	private static $authenticated = false;
@@ -182,12 +183,25 @@ final class BMA_US_Site_Manager_Connection {
 		return $response;
 	}
 
+	private static function update_freshness( $transient, $field, $now ) {
+		$checked = filter_var( $transient->last_checked ?? null, FILTER_VALIDATE_INT );
+		if ( ! is_array( $transient->$field ?? null ) || ! $checked || $checked < 0 || $checked > $now ) {
+			return array( 'status' => 'unavailable', 'checked_at' => null );
+		}
+
+		return array(
+			'status'     => $now - $checked >= self::UPDATE_MAX_AGE ? 'outdated' : 'current',
+			'checked_at' => $checked,
+		);
+	}
+
 	private static function build_status() {
 		global $wp_version;
 		bma_us_load_update_files();
 		$plugin_updates = get_site_transient( 'update_plugins' );
 		$theme_updates  = get_site_transient( 'update_themes' );
 		$core_updates   = get_site_transient( 'update_core' );
+		$now            = time();
 		$installed_plugins = get_plugins();
 		$plugin_count   = is_object( $plugin_updates ) && is_array( $plugin_updates->response ?? null ) ? count( $plugin_updates->response ) : 0;
 		$theme_count    = is_object( $theme_updates ) && is_array( $theme_updates->response ?? null ) ? count( $theme_updates->response ) : 0;
@@ -214,7 +228,7 @@ final class BMA_US_Site_Manager_Connection {
 				);
 			}
 		}
-		if ( is_object( $core_updates ) && ! empty( $core_updates->updates ) ) {
+		if ( is_array( $core_updates->updates ?? null ) ) {
 			foreach ( $core_updates->updates as $update ) {
 				if ( 'upgrade' === ( $update->response ?? '' ) ) {
 					$core_count = 1;
@@ -292,6 +306,12 @@ final class BMA_US_Site_Manager_Connection {
 				'themes'  => $theme_count,
 				'core'    => $core_count,
 				'items'   => array_slice( $update_items, 0, 50 ),
+				'freshness' => array(
+					'max_age_seconds' => self::UPDATE_MAX_AGE,
+					'plugins' => self::update_freshness( $plugin_updates, 'response', $now ),
+					'themes'  => self::update_freshness( $theme_updates, 'response', $now ),
+					'core'    => self::update_freshness( $core_updates, 'updates', $now ),
+				),
 			),
 			'backup'         => array(
 				'status'       => $external_mode ? 'external' : ( $backup_passed ? 'protected' : 'warning' ),
