@@ -61,8 +61,13 @@ function get_current_user_id() { return 7; }
 function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function rest_ensure_response( $data ) { return new WP_REST_Response( $data ); }
 function bma_us_load_update_files() {}
-function get_site_transient( $key ) { return false; }
+function get_site_transient( $key ) { return $GLOBALS['update_transients'][ $key ] ?? false; }
 function get_plugins() { return array(); }
+function wp_get_theme( $stylesheet ) {
+	return new class {
+		public function exists() { return false; }
+	};
+}
 function bma_us_get_backup_protection_status() { return array( 'provider' => 'external' ); }
 function bma_us_get_history() { return array(); }
 function bma_us_get_settings() { return array( 'enabled' => true ); }
@@ -213,6 +218,35 @@ $tests = array(
 		$GLOBALS['site_name'] = 'Rebuilt';
 		expect( 'Rebuilt', status_data( signed_request( $secret ) )['site'] );
 	},
+	'update freshness distinguishes unavailable, outdated and current data' => function ( $secret ) {
+		$refresh = function () use ( $secret ) {
+			return status_data( signed_request( $secret, 0, array( 'x-bma-refresh' => '1' ) ) )['updates'];
+		};
+		$missing = $refresh();
+		foreach ( array( 'plugins', 'themes', 'core' ) as $type ) {
+			expect( array( 'status' => 'unavailable', 'checked_at' => null ), $missing['freshness'][ $type ] );
+			expect( 0, $missing[ $type ] );
+		}
+		$now = time() - 5;
+		$old = $now - 86400;
+		$GLOBALS['update_transients'] = array(
+			'update_plugins' => (object) array( 'last_checked' => $now ),
+			'update_themes' => (object) array( 'last_checked' => $old, 'response' => array( 'fixture' => array( 'new_version' => '2.0' ) ) ),
+			'update_core' => (object) array( 'last_checked' => $now, 'updates' => array() ),
+		);
+		$mixed = $refresh();
+		expect( 86400, $mixed['freshness']['max_age_seconds'] );
+		expect( 1, $mixed['total'] );
+		expect( 'unavailable', $mixed['freshness']['plugins']['status'] );
+		expect( array( 'status' => 'outdated', 'checked_at' => $old ), $mixed['freshness']['themes'] );
+		expect( 1, $mixed['themes'] );
+		expect( array( 'status' => 'current', 'checked_at' => $now ), $mixed['freshness']['core'] );
+		expect( 0, $mixed['core'] );
+		$GLOBALS['update_transients']['update_plugins']->response = array();
+		expect( 'current', $refresh()['freshness']['plugins']['status'] );
+		unset( $GLOBALS['update_transients']['update_plugins']->last_checked );
+		expect( 'unavailable', $refresh()['freshness']['plugins']['status'] );
+	},
 	'HTTPS required even with a populated status cache' => function ( $secret ) {
 		status_data( signed_request( $secret ) );
 		$GLOBALS['https'] = false;
@@ -236,6 +270,7 @@ foreach ( $tests as $name => $test ) {
 	try {
 		$options = array( 'last_check' => array( 'status' => 'current' ) );
 		$transients = $routes = array();
+		$update_transients = array();
 		$https = true;
 		$site_name = 'Fixture';
 		Connection::register_route();
